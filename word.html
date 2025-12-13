@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Rich Text Editor</title>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Mammoth.js for .docx support -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.21/mammoth.browser.min.js"></script>
+    <!-- JSZip for .odt support -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #2b5797;
+            --accent-color: #e6bf00;
+            --bg-color: #f3f3f3;
+            --surface-color: #ffffff;
+            --border-color: #ccc;
+            --hover-color: #e6e6e6;
+            --text-color: #333;
+            --editor-text: #000;
+            --shadow: 0 2px 5px rgba(0,0,0,0.1);
+            --label-color: #666;
+        }
+
+        [data-theme="dark"] {
+            --primary-color: #4a86e8;
+            --bg-color: #1e1e1e;
+            --surface-color: #2d2d2d;
+            --border-color: #444;
+            --hover-color: #3d3d3d;
+            --text-color: #e0e0e0;
+            --editor-text: #e0e0e0;
+            --label-color: #aaa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            transition: background-color 0.3s;
+        }
+
+        /* --- Toolbar --- */
+        .toolbar {
+            background-color: var(--surface-color);
+            border-bottom: 1px solid var(--border-color);
+            padding: 5px 10px;
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            align-items: stretch; /* Stretch to make groups equal height */
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+        }
+
+        .tool-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            border-right: 1px solid var(--border-color);
+            padding: 0 10px;
+        }
+
+        .tool-group:last-child { border-right: none; }
+
+        .tool-icons {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex: 1; /* Pushes label to bottom */
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .tool-group-label {
+            font-size: 10px;
+            color: var(--label-color);
+            margin-top: 4px;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            user-select: none;
+        }
+
+        button, .file-upload-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 6px 8px;
+            border-radius: 4px;
+            color: var(--text-color);
+            font-size: 14px;
+            transition: background 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        button:hover, .file-upload-btn:hover { background-color: var(--hover-color); }
+        
+        button i { pointer-events: none; }
+
+        select {
+            padding: 4px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: var(--surface-color);
+            color: var(--text-color);
+            font-size: 12px;
+            max-width: 100px;
+        }
+
+        input[type="color"] {
+            border: none;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            padding: 0;
+            background: none;
+        }
+
+        /* --- Editor Area --- */
+        .editor-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+            display: flex;
+            flex-direction: column; /* Fixed: Allows content to grow naturally */
+            align-items: center;
+        }
+
+        #content-area {
+            background-color: var(--surface-color);
+            width: 21cm;
+            min-height: 29.7cm; 
+            height: auto; 
+            padding: 2.5cm;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            outline: none;
+            font-size: 12pt;
+            line-height: 1.6;
+            color: var(--editor-text);
+            transition: background-color 0.3s, color 0.3s;
+            flex-shrink: 0; 
+            margin-bottom: 50px;
+            overflow-wrap: break-word; 
+        }
+
+        #content-area table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        #content-area table, #content-area th, #content-area td {
+            border: 1px solid var(--border-color);
+        }
+        #content-area td { padding: 5px; }
+        #content-area img { max-width: 100%; height: auto; }
+        #content-area a { color: var(--primary-color); text-decoration: underline; }
+
+        #content-area:empty:before {
+            content: 'Start typing or import a file...';
+            color: #888;
+        }
+
+        /* --- Status Bar --- */
+        .status-bar {
+            background-color: var(--surface-color);
+            border-top: 1px solid var(--border-color);
+            padding: 5px 20px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-color);
+        }
+
+        .status-item {
+            margin-right: 15px;
+        }
+
+        #save-status {
+            font-weight: bold;
+            color: var(--primary-color);
+            transition: opacity 0.5s;
+        }
+
+        /* Loading Spinner */
+        #loader {
+            display: none;
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            z-index: 2000;
+        }
+
+        /* Visual line for Page Break in Editor */
+        .page-break-marker {
+            border-top: 2px dashed #999;
+            margin: 20px 0;
+            position: relative;
+            display: block;
+            pointer-events: none; 
+        }
+
+        .page-break-marker::after {
+            content: "Page Break";
+            position: absolute;
+            top: -12px;
+            right: 0;
+            background: #999;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        @media print {
+            body { background: white; height: auto; display: block; }
+            .toolbar, .status-bar, #loader { display: none; }
+            .editor-container { padding: 0; display: block; overflow: visible; }
+            #content-area { 
+                box-shadow: none; 
+                padding: 0; 
+                width: 100%; 
+                min-height: auto; 
+                color: black !important;
+                background-color: white !important;
+            }
+            .page-break-marker {
+                border: none;
+                margin: 0;
+                page-break-after: always;
+                break-after: page;
+                display: block;
+                height: 1px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Hidden File Input -->
+    <input type="file" id="fileInput" accept=".docx, .txt, .odt" style="display: none;" onchange="handleFileSelect(this)">
+    
+    <!-- Loader -->
+    <div id="loader"><i class="fas fa-spinner fa-spin"></i> Processing...</div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+        
+        <!-- Group: FILE -->
+     <!-- Group: FILE -->
+<div class="tool-group">
+    <div class="tool-icons">
+        <label for="fileInput" class="file-upload-btn" title="Import File">
+            <i class="fas fa-folder-open" style="color: var(--accent-color);"></i>
+        </label>
+        <button onclick="saveDoc('html')" title="Save HTML"><i class="fas fa-file-code" style="color: var(--primary-color);"></i></button>
+        <button onclick="saveDoc('txt')" title="Download Text"><i class="fas fa-file-alt"></i></button>
+        <!-- NEW BUTTON HERE -->
+        <button onclick="saveDoc('odt')" title="Download ODT"><i class="fas fa-file-word" style="color: #2b5797;"></i></button>
+        
+        <button onclick="window.print()" title="Print"><i class="fas fa-print"></i></button>
+        <button onclick="clearDoc()" title="Clear All" style="color: #d9534f;"><i class="fas fa-trash-alt"></i></button>
+    </div>
+    <span class="tool-group-label">File</span>
+</div>
+
+        <!-- Group: HISTORY -->
+        <div class="tool-group">
+            <div class="tool-icons">
+                <button onclick="formatDoc('undo')" title="Undo"><i class="fas fa-undo"></i></button>
+                <button onclick="formatDoc('redo')" title="Redo"><i class="fas fa-redo"></i></button>
+            </div>
+            <span class="tool-group-label">History</span>
+        </div>
+
+        <!-- Group: FONT -->
+        <div class="tool-group">
+            <div class="tool-icons">
+                <select onchange="formatDoc('fontName', this.value)" title="Font Family">
+                    <option value="Arial">Arial</option>
+                    <option value="Calibri">Calibri</option>
+                    <option value="Times New Roman">Times</option>
+                    <option value="Segoe UI" selected>Segoe</option>
+                    <option value="Verdana">Verdana</option>
+                </select>
+                <select onchange="formatDoc('fontSize', this.value)" title="Font Size" style="width:60px;">
+                    <option value="1">Small</option>
+                    <option value="3" selected>Norm</option>
+                    <option value="5">Big</option>
+                    <option value="7">Huge</option>
+                </select>
+                <div style="display:flex; gap:2px;">
+                    <input type="color" oninput="formatDoc('foreColor', this.value)" title="Text Color">
+                    <input type="color" oninput="formatDoc('hiliteColor', this.value)" value="#ffffff" title="Highlight">
+                </div>
+            </div>
+            <span class="tool-group-label">Font</span>
+        </div>
+
+        <!-- Group: FORMAT -->
+        <div class="tool-group">
+            <div class="tool-icons">
+                <button onclick="formatDoc('bold')" title="Bold"><i class="fas fa-bold"></i></button>
+                <button onclick="formatDoc('italic')" title="Italic"><i class="fas fa-italic"></i></button>
+                <button onclick="formatDoc('underline')" title="Underline"><i class="fas fa-underline"></i></button>
+                <button onclick="formatDoc('strikeThrough')" title="Strikethrough"><i class="fas fa-strikethrough"></i></button>
+                <button onclick="formatDoc('removeFormat')" title="Remove Styling"><i class="fas fa-eraser"></i></button>
+            </div>
+            <span class="tool-group-label">Styling</span>
+        </div>
+
+        <!-- Group: PARAGRAPH -->
+        <div class="tool-group">
+            <div class="tool-icons">
+                <button onclick="formatDoc('justifyLeft')" title="Left"><i class="fas fa-align-left"></i></button>
+                <button onclick="formatDoc('justifyCenter')" title="Center"><i class="fas fa-align-center"></i></button>
+                <button onclick="formatDoc('justifyRight')" title="Right"><i class="fas fa-align-right"></i></button>
+                <button onclick="formatDoc('insertUnorderedList')" title="Bullets"><i class="fas fa-list-ul"></i></button>
+                <button onclick="formatDoc('insertOrderedList')" title="Numbers"><i class="fas fa-list-ol"></i></button>
+            </div>
+            <span class="tool-group-label">Paragraph</span>
+        </div>
+
+        <!-- Group: INSERT -->
+        <div class="tool-group">
+            <div class="tool-icons">
+                <button onclick="insertPageBreak()" title="Page Break"><i class="fas fa-cut"></i></button>
+                <button onclick="insertLink()" title="Link"><i class="fas fa-link"></i></button>
+                <button onclick="insertImage()" title="Image"><i class="fas fa-image"></i></button>
+                <button onclick="insertTable()" title="Table"><i class="fas fa-table"></i></button>
+                <button onclick="formatDoc('insertHorizontalRule')" title="Line"><i class="fas fa-minus"></i></button>
+            </div>
+            <span class="tool-group-label">Page</span>
+        </div>
+
+        <!-- Group: VIEW -->
+        <div class="tool-group">
+            <div class="tool-icons">
+                <button onclick="toggleTheme()" title="Toggle Dark Mode"><i class="fas fa-moon"></i></button>
+            </div>
+            <span class="tool-group-label">View</span>
+        </div>
+    </div>
+
+    <!-- Editing Area -->
+    <div class="editor-container">
+        <div id="content-area" contenteditable="true" spellcheck="true"></div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div>
+            <span class="status-item" id="save-status">Checking storage...</span>
+        </div>
+        <div>
+            <span class="status-item">Words: <span id="word-count">0</span></span>
+            <span class="status-item">Chars: <span id="char-count">0</span></span>
+        </div>
+    </div>
+
+    <script>
+    // --- 1. CONFIGURATION & STATE ---
+    const DB_NAME = 'RichTextEditorDB';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'documents';
+    const DOC_ID = 'currentDoc';
+    let db;
+    
+    // Optimization: Dirty Flag System
+    // We only save if 'isDirty' is true, and only once every few seconds.
+    let isDirty = false;
+    let saveInterval;
+    
+    const editor = document.getElementById('content-area');
+
+    // --- 2. INDEXED DB (Storage) ---
+    function initDB() {
+        loadSavedTheme();
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+        request.onerror = (event) => {
+            console.error("Database error: " + event.target.errorCode);
+            document.getElementById('save-status').innerText = "Offline Mode";
+        };
+
+        request.onupgradeneeded = (event) => {
+            db = event.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+            }
+        };
+
+        request.onsuccess = (event) => {
+            db = event.target.result;
+            loadContentFromDB();
+            // Start the optimized auto-saver
+            startAutoSave();
+        };
+    }
+
+    // --- 3. OPTIMIZED SAVE SYSTEM ---
+    function startAutoSave() {
+        // Check every 3 seconds. If changed, save.
+        // This prevents the browser from freezing while typing fast in a large doc.
+        saveInterval = setInterval(() => {
+            if (isDirty) {
+                saveContentToDB();
+                isDirty = false;
+            }
+        }, 3000);
+    }
+
+    function saveContentToDB() {
+        if (!db) return;
+        
+        // This line is expensive on 100k words, so we only do it when necessary
+        const content = editor.innerHTML; 
+        
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.put({ id: DOC_ID, content: content, timestamp: new Date() });
+        
+        request.onsuccess = () => showSaveStatus("Saved");
+        request.onerror = () => showSaveStatus("Error Saving");
+    }
+
+    function loadContentFromDB() {
+        const transaction = db.transaction([STORE_NAME], 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.get(DOC_ID);
+
+        request.onsuccess = (event) => {
+            if (event.target.result && event.target.result.content) {
+                if(editor.innerHTML.trim() === "" || editor.innerHTML === "<br>") {
+                    editor.innerHTML = event.target.result.content;
+                    updateStats();
+                }
+            }
+            showSaveStatus("Ready");
+        };
+    }
+
+    // --- 4. EDITOR LOGIC & KEYBOARD SHORTCUTS ---
+    
+    // Mark as dirty on input, update stats cheaply
+    editor.addEventListener('input', () => {
+        isDirty = true;
+        showSaveStatus("Unsaved changes...");
+        // Debounce stat updates slightly to help performance
+        clearTimeout(window.statTimeout);
+        window.statTimeout = setTimeout(updateStats, 500);
+    });
+
+    // Handle Keyboard Shortcuts (Ctrl+Z, Tab)
+    editor.addEventListener('keydown', (e) => {
+        // CTRL+Z (Undo)
+        if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+            e.preventDefault();
+            document.execCommand('undo');
+        }
+        // CTRL+Y or CTRL+SHIFT+Z (Redo)
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
+            e.preventDefault();
+            document.execCommand('redo');
+        }
+        // TAB key (Insert indentation instead of losing focus)
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            document.execCommand('insertHTML', false, '&emsp;');
+        }
+    });
+
+    function formatDoc(cmd, value = null) {
+        if(value) {
+            document.execCommand(cmd, false, value);
+        } else {
+            document.execCommand(cmd);
+        }
+        editor.focus();
+        isDirty = true; // Formatting changes require a save
+    }
+
+    // --- 5. UI HELPERS ---
+    function updateStats() {
+        // On 100k words, innerText is heavy. We guard it.
+        const text = editor.innerText || "";
+        const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
+        const charCount = text.length;
+        document.getElementById('word-count').innerText = wordCount;
+        document.getElementById('char-count').innerText = charCount;
+    }
+
+    function showSaveStatus(msg) {
+        const status = document.getElementById('save-status');
+        status.innerText = msg;
+        status.style.opacity = 1;
+    }
+
+    function toggleTheme() {
+        const body = document.body;
+        if (body.getAttribute('data-theme') === 'dark') {
+            body.removeAttribute('data-theme');
+            localStorage.setItem('theme', 'light');
+        } else {
+            body.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark');
+        }
+    }
+
+    function loadSavedTheme() {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') document.body.setAttribute('data-theme', 'dark');
+    }
+
+    function clearDoc() {
+        if(confirm("Clear entire document?")) {
+            editor.innerHTML = "";
+            updateStats();
+            isDirty = true; // Will trigger auto-save shortly
+            editor.focus();
+        }
+    }
+
+    // --- 6. FILE IMPORT/EXPORT WRAPPERS ---
+    function handleFileSelect(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const loader = document.getElementById('loader');
+        loader.style.display = 'block';
+        const fileName = file.name.toLowerCase();
+
+        if (fileName.endsWith('.docx')) {
+            importDocx(file);
+        } else if (fileName.endsWith('.txt')) {
+            importTxt(file);
+        } else if (fileName.endsWith('.odt')) {
+            importOdt(file);
+        } else {
+            alert('Unsupported file format.');
+            loader.style.display = 'none';
+        }
+        input.value = '';
+    }
+
+    function importTxt(file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const text = e.target.result;
+            editor.innerHTML = text.replace(/\n/g, '<br>');
+            postImportCleanup();
+        };
+        reader.readAsText(file);
+    }
+
+    function importDocx(file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            mammoth.convertToHtml({arrayBuffer: e.target.result})
+            .then(result => {
+                editor.innerHTML = result.value;
+                postImportCleanup();
+            })
+            .catch(err => {
+                alert('Error reading DOCX.');
+                document.getElementById('loader').style.display = 'none';
+            });
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function importOdt(file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            JSZip.loadAsync(e.target.result).then(function(zip) {
+                return zip.file("content.xml").async("string");
+            }).then(function(xmlContent) {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlContent, "text/xml");
+                const paragraphs = xmlDoc.getElementsByTagName("text:p");
+                let htmlOutput = "";
+                // Very basic ODT import loop
+                for (let i = 0; i < paragraphs.length; i++) {
+                    htmlOutput += `<p>${paragraphs[i].textContent}</p>`;
+                }
+                editor.innerHTML = htmlOutput;
+                postImportCleanup();
+            }).catch(function(err) {
+                alert("Error reading ODT.");
+                document.getElementById('loader').style.display = 'none';
+            });
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function postImportCleanup() {
+        document.getElementById('loader').style.display = 'none';
+        isDirty = true; // Force save on next tick
+        updateStats();
+    }
+
+    // --- COPY THE SAVE/ODT FUNCTIONS BELOW THIS LINE ---
+    function saveDoc(type) {
+        // ... (Paste your saveDoc function here)
+         const content = editor.innerHTML;
+        let blob;
+
+        if (type === 'html') {
+            blob = new Blob([`<html><body style='font-family:Arial;'>${content}</body></html>`], { type: 'text/html' });
+            triggerDownload(blob, 'document.html');
+        } 
+        else if (type === 'txt') {
+            blob = new Blob([editor.innerText], { type: 'text/plain' });
+            triggerDownload(blob, 'document.txt');
+        } 
+        else if (type === 'odt') {
+            exportODT();
+        }
+    }
+
+    function triggerDownload(blob, filename) {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(link.href), 100);
+    }
+    
+    // --- Page Break Helper ---
+    function insertPageBreak() {
+        const html = `<div class="page-break-marker">&nbsp;</div>`;
+        document.execCommand('insertHTML', false, html);
+        editor.focus();
+    }
+    
+    function insertLink() {
+        const url = prompt("Enter the URL:");
+        if (url) formatDoc('createLink', url);
+    }
+
+    function insertImage() {
+        const url = prompt("Enter Image URL:");
+        if (url) formatDoc('insertImage', url);
+    }
+
+    function insertTable() {
+        const html = `
+            <table style="width:100%; border-collapse: collapse;">
+                <tr><td>Header 1</td><td>Header 2</td></tr>
+                <tr><td>Data 1</td><td>Data 2</td></tr>
+            </table><br>`;
+        document.execCommand('insertHTML', false, html);
+    }
+
+function exportODT() {
+    if (typeof JSZip === 'undefined') {
+        alert("JSZip library not found. Cannot export.");
+        return;
+    }
+
+    const zip = new JSZip();
+    const editor = document.getElementById('content-area');
+    
+    // -- 1. STATE MANAGEMENT --
+    let automaticStyles = "";
+    let styleCounter = 0;
+    const styleMap = new Map(); 
+    let imageCounter = 0;
+    const folderPictures = zip.folder("Pictures");
+
+    // -- 2. PRE-DEFINED LIST STYLES --
+    // These define what bullets and numbers actually look like.
+    // Without this, lists are just indented blank space.
+    const listStyles = `
+    <text:list-style style:name="ListBullet">
+        <text:list-level-style-bullet text:level="1" text:bullet-char="•">
+            <style:list-level-properties text:list-level-position-and-space-mode="label-alignment">
+                <style:list-level-label-alignment text:label-followed-by="listtab" text:list-tab-stop-position="0.5in" fo:text-indent="-0.25in" fo:margin-left="0.5in"/>
+            </style:list-level-properties>
+        </text:list-level-style-bullet>
+    </text:list-style>
+    <text:list-style style:name="ListNumber">
+        <text:list-level-style-number text:level="1" style:num-format="1">
+            <style:list-level-properties text:list-level-position-and-space-mode="label-alignment">
+                <style:list-level-label-alignment text:label-followed-by="listtab" text:list-tab-stop-position="0.5in" fo:text-indent="-0.25in" fo:margin-left="0.5in"/>
+            </style:list-level-properties>
+        </text:list-level-style-number>
+    </text:list-style>
+    `;
+
+    // -- 3. HELPERS --
+    function rgbToHex(rgb) {
+        if (!rgb || rgb === 'transparent' || rgb === 'inherit') return null;
+        if (rgb.startsWith('#')) return rgb;
+        const result = rgb.match(/\d+/g);
+        if (!result || result.length < 3) return null;
+        return "#" + ((1 << 24) + (parseInt(result[0]) << 16) + (parseInt(result[1]) << 8) + parseInt(result[2])).toString(16).slice(1);
+    }
+
+    function mapFontSize(val) {
+        if (typeof val === 'string' && (val.includes('pt') || val.includes('px'))) return val;
+        const sizes = { 1: "8pt", 2: "10pt", 3: "12pt", 4: "14pt", 5: "18pt", 6: "24pt", 7: "36pt" };
+        return sizes[val] || "12pt";
+    }
+
+    // -- 4. STYLE GENERATOR --
+    function getStyleName(node, type) {
+        const css = window.getComputedStyle(node);
+        let props = "";
+        
+        // --- PARAGRAPH STYLES (Alignment) ---
+        if (type === 'paragraph') {
+            // FIX: Map browser 'left/right' to ODT 'start/end'
+            const alignMap = { 'left': 'start', 'right': 'end', 'center': 'center', 'justify': 'justify' };
+            // Check both inline style and computed style
+            const alignRaw = node.style.textAlign || css.textAlign;
+            
+            if (alignRaw && alignMap[alignRaw]) {
+                props += `fo:text-align="${alignMap[alignRaw]}" style:justify-single-word="false" `;
+            }
+            // Add basic margins to paragraphs so they don't look crushed
+            props += `fo:margin-top="0cm" fo:margin-bottom="0.2cm" `;
+        } 
+        
+        // --- TEXT STYLES (Bold, Color, Font) ---
+        else if (type === 'text') {
+            // Colors
+            let color = node.style.color || node.color;
+            if (color) {
+                const hex = rgbToHex(color);
+                if (hex) props += `fo:color="${hex}" `;
+            }
+            
+            let bg = node.style.backgroundColor || node.style.background;
+            if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
+                const hex = rgbToHex(bg);
+                if (hex) props += `fo:background-color="${hex}" `;
+            }
+
+            // Font Face & Size
+            let font = node.style.fontFamily || node.face;
+            if (font) {
+                font = font.replace(/['"]/g, '');
+                props += `style:font-name="${font}" style:font-name-complex="${font}" `;
+            }
+            let size = node.style.fontSize || node.size; 
+            if (size) {
+                props += `fo:font-size="${mapFontSize(size)}" style:font-size-asian="${mapFontSize(size)}" `;
+            }
+
+            // Formatting (Bold/Italic/Underline)
+            if (css.fontWeight === 'bold' || parseInt(css.fontWeight) >= 700 || node.tagName === 'B' || node.tagName === 'STRONG') {
+                props += `fo:font-weight="bold" style:font-weight-asian="bold" `;
+            }
+            if (css.fontStyle === 'italic' || node.tagName === 'I' || node.tagName === 'EM') {
+                props += `fo:font-style="italic" style:font-style-asian="italic" `;
+            }
+            if (css.textDecorationLine.includes('underline') || node.tagName === 'U') {
+                props += `style:text-underline-style="solid" style:text-underline-width="auto" style:text-underline-color="font-color" `;
+            }
+            if (css.textDecorationLine.includes('line-through') || node.tagName === 'STRIKE' || node.tagName === 'S') {
+                props += `style:text-line-through-style="solid" `;
+            }
+        }
+
+        if (props.trim() === "") return null;
+
+        const key = type + "|" + props;
+        if (styleMap.has(key)) return styleMap.get(key);
+
+        const name = (type === 'paragraph' ? "P" : "T") + (++styleCounter);
+        const family = type === 'paragraph' ? 'paragraph' : 'text';
+        
+        automaticStyles += `<style:style style:name="${name}" style:family="${family}">
+            <style:${type}-properties ${props} />
+        </style:style>`;
+        
+        styleMap.set(key, name);
+        return name;
+    }
+
+    // -- 5. RECURSIVE PARSER --
+    function parseNode(node) {
+        if (node.nodeType === Node.TEXT_NODE) {
+            return node.textContent.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+        if (node.nodeType !== Node.ELEMENT_NODE) return "";
+
+        const tagName = node.tagName.toLowerCase();
+        
+        // Images
+        if (tagName === 'img') {
+            const src = node.getAttribute('src');
+            if (src && src.startsWith('data:image')) {
+                const ext = src.substring(src.indexOf('/') + 1, src.indexOf(';'));
+                const base64Data = src.split(',')[1];
+                const fileName = `image_${++imageCounter}.${ext}`;
+                folderPictures.file(fileName, base64Data, {base64: true});
+                return `<draw:frame draw:name="img${imageCounter}" text:anchor-type="as-char" svg:width="${node.width || '5cm'}" svg:height="${node.height || '5cm'}" draw:z-index="0"><draw:image xlink:href="Pictures/${fileName}" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/></draw:frame>`;
+            }
+            return "";
+        }
+
+        // --- FIXED: LIST HANDLING ---
+        // We explicitly bind UL to 'ListBullet' and OL to 'ListNumber'
+        if (tagName === 'ul') {
+            const inner = Array.from(node.children).map(parseNode).join("");
+            return `<text:list text:style-name="ListBullet">${inner}</text:list>`;
+        }
+        if (tagName === 'ol') {
+            const inner = Array.from(node.children).map(parseNode).join("");
+            return `<text:list text:style-name="ListNumber">${inner}</text:list>`;
+        }
+        if (tagName === 'li') {
+            return `<text:list-item><text:p>${parseNodeHTML(node)}</text:p></text:list-item>`;
+        }
+
+        // Tables
+        if (tagName === 'table') {
+            const inner = Array.from(node.children).map(parseNode).join("");
+            return `<table:table table:name="Table${Date.now()}"><table:table-column table:number-columns-repeated="5"/>${inner}</table:table>`;
+        }
+        if (tagName === 'tr') return `<table:table-row>${Array.from(node.children).map(parseNode).join("")}</table:table-row>`;
+        if (tagName === 'td' || tagName === 'th') return `<table:table-cell><text:p>${parseNodeHTML(node)}</text:p></table:table-cell>`;
+        if (tagName === 'tbody' || tagName === 'thead') return Array.from(node.children).map(parseNode).join("");
+
+        // Page Break
+        if (node.classList.contains('page-break-marker')) {
+            return `<text:p text:style-name="PageBreak"/>`;
+        }
+
+        // Block Elements (P, Div, Headers)
+        if (['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) {
+            const styleName = getStyleName(node, 'paragraph');
+            const styleAttr = styleName ? `text:style-name="${styleName}"` : "";
+            
+            if (tagName.startsWith('h')) {
+                return `<text:h text:outline-level="${tagName.substring(1)}" ${styleAttr}>${parseNodeHTML(node)}</text:h>`;
+            }
+            return `<text:p ${styleAttr}>${parseNodeHTML(node)}</text:p>`;
+        }
+        
+        // BR
+        if(tagName === 'br') return `<text:line-break/>`;
+
+        return parseNodeHTML(node);
+    }
+
+    function parseNodeHTML(node) {
+        let content = "";
+        node.childNodes.forEach(child => {
+            const parsedChild = parseNode(child);
+            if (child.nodeType === Node.TEXT_NODE && node.nodeType === Node.ELEMENT_NODE) {
+                // If the parent is a formatting tag (B, I, U, etc), wrap text in SPAN with style
+                const inlineTags = ['b', 'strong', 'i', 'em', 'u', 'span', 'font', 's', 'strike'];
+                if (inlineTags.includes(node.tagName.toLowerCase())) {
+                    const styleName = getStyleName(node, 'text');
+                    if (styleName) {
+                        content += `<text:span text:style-name="${styleName}">${parsedChild}</text:span>`;
+                        return;
+                    }
+                }
+            }
+            content += parsedChild;
+        });
+        return content;
+    }
+
+    // -- 6. EXECUTION --
+    
+    // File 1: mimetype
+    zip.file("mimetype", "application/vnd.oasis.opendocument.text", { compression: "STORE" });
+
+    // File 2: Parse Body (Populates automaticStyles)
+    let bodyContent = "";
+    editor.childNodes.forEach(node => {
+        if (node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== "") {
+             bodyContent += `<text:p>${node.textContent}</text:p>`;
+        } else {
+             bodyContent += parseNode(node);
+        }
+    });
+
+    // File 3: manifest.xml
+    let manifestXML = `<?xml version="1.0" encoding="UTF-8"?>
+<manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" manifest:version="1.2">
+ <manifest:file-entry manifest:full-path="/" manifest:media-type="application/vnd.oasis.opendocument.text"/>
+ <manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/>`;
+    if (imageCounter > 0) {
+        manifestXML += `<manifest:file-entry manifest:full-path="Pictures/" manifest:media-type="application/vnd.oasis.opendocument.image"/>`;
+    }
+    manifestXML += `</manifest:manifest>`;
+    zip.folder("META-INF").file("manifest.xml", manifestXML);
+
+    // File 4: content.xml
+    const contentXML = `<?xml version="1.0" encoding="UTF-8"?>
+<office:document-content 
+    xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" 
+    xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" 
+    xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" 
+    xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" 
+    xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" 
+    xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" 
+    xmlns:xlink="http://www.w3.org/1999/xlink" 
+    xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" 
+    office:version="1.2">
+  
+  <office:automatic-styles>
+    ${listStyles}
+    ${automaticStyles}
+    <style:style style:name="PageBreak" style:family="paragraph">
+        <style:paragraph-properties fo:break-before="page"/>
+    </style:style>
+  </office:automatic-styles>
+  
+  <office:body>
+    <office:text>
+      ${bodyContent}
+    </office:text>
+  </office:body>
+</office:document-content>`;
+
+    zip.file("content.xml", contentXML);
+
+    // Download
+    zip.generateAsync({type:"blob"}).then(function(blob) {
+        triggerDownload(blob, "document.odt");
+    }, function(err) {
+        alert("Export Error: " + err);
+    });
+}
+
+    window.addEventListener('DOMContentLoaded', initDB);
+    window.onbeforeunload = function() { 
+        if(isDirty) saveContentToDB(); 
+    };
+</script>
+    
+</body>
+</html>
