@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Final Notepad with IndexedDB</title>
+    
+    <!-- Dependency for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary-color: #0078d4;
+            --bg-color: #f5f5f5;
+            --surface-color: #ffffff;
+            --border-color: #e0e0e0;
+            --hover-color: #e6f2fa;
+            --text-color: #202020;
+            --editor-bg: #ffffff;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        [data-theme="dark"] {
+            --primary-color: #4a90e2;
+            --bg-color: #1e1e1e;
+            --surface-color: #2d2d2d;
+            --border-color: #444;
+            --hover-color: #3c3c3c;
+            --text-color: #e0e0e0;
+            --editor-bg: #252525;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            background-color: var(--surface-color);
+            border-bottom: 1px solid var(--border-color);
+            padding: 8px 12px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-shrink: 0;
+            box-shadow: var(--shadow);
+            z-index: 100;
+        }
+
+        .tool-group { display: flex; align-items: center; gap: 5px; }
+        .separator { width: 1px; height: 20px; background-color: var(--border-color); }
+
+        .toolbar button {
+            background: none; border: none; cursor: pointer;
+            padding: 6px 10px; border-radius: 5px;
+            color: var(--text-color); font-size: 16px;
+            transition: background-color 0.2s;
+        }
+        .toolbar button:hover { background-color: var(--hover-color); }
+        .toolbar button:disabled { opacity: 0.4; cursor: not-allowed; }
+        .toolbar button.active { background-color: var(--primary-color); color: white; }
+
+        /* Editor Area */
+        .editor-container { 
+            flex-grow: 1; 
+            overflow-y: auto; /* This container will scroll */
+            padding: 10px; 
+        }
+
+       #editor {
+            background-color: var(--editor-bg);
+            /* --- CSS FIX IS HERE --- */
+            min-height: 100%; /* Start at full height */
+            height: auto; /* Allow it to grow beyond the initial height */
+            box-sizing: border-box; /* Include padding and border in the height calculation */
+            /* --- END OF FIX --- */
+            
+            padding: 20px 25px;
+            box-shadow: var(--shadow); border: 1px solid var(--border-color);
+            border-radius: 8px; outline: none; font-size: 16px;
+            line-height: 1.7; color: var(--text-color);
+            overflow-wrap: break-word;
+        }
+        #editor:focus {
+             border-color: var(--primary-color);
+             box-shadow: 0 0 8px rgba(0, 120, 212, 0.3);
+        }
+        #editor:empty:before { 
+            content: 'Start typing here...'; color: #aaa; pointer-events: none;
+        }
+        
+        /* Status Bar */
+        .status-bar {
+            background-color: var(--surface-color); border-top: 1px solid var(--border-color);
+            padding: 6px 20px; font-size: 13px; display: flex;
+            justify-content: space-between; color: var(--text-color);
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <div class="tool-group">
+            <button onclick="saveFile('html')" title="Save as HTML"><i class="fas fa-file-code"></i></button>
+            <button onclick="saveFile('txt')" title="Save as Text"><i class="fas fa-file-alt"></i></button>
+            <button onclick="clearEditor()" title="Clear everything"><i class="fas fa-trash-alt"></i></button>
+        </div>
+        
+        <div class="separator"></div>
+        
+        <div class="tool-group">
+            <button id="undo-btn" onclick="undo()" title="Undo (Ctrl+Z)" disabled><i class="fas fa-undo"></i></button>
+            <button id="redo-btn" onclick="redo()" title="Redo (Ctrl+Y)" disabled><i class="fas fa-redo"></i></button>
+        </div>
+
+        <div class="separator"></div>
+
+        <div class="tool-group">
+            <button onclick="applyStyle('B')" title="Bold"><i class="fas fa-bold"></i></button>
+            <button onclick="applyStyle('I')" title="Italic"><i class="fas fa-italic"></i></button>
+            <button onclick="applyStyle('U')" title="Underline"><i class="fas fa-underline"></i></button>
+        </div>
+        
+        <div class="tool-group" style="margin-left: auto;">
+             <button onclick="toggleTheme()" title="Toggle Theme"><i class="fas fa-moon"></i></button>
+             <!-- Print/PDF button removed as requested -->
+        </div>
+    </div>
+
+    <!-- MAIN EDITOR -->
+    <div class="editor-container">
+        <div id="editor" contenteditable="true" spellcheck="true"></div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div><span id="save-status">Initializing DB...</span></div>
+        <div>
+            <span>Words: <span id="word-count">0</span></span>
+            <span style="margin-left: 15px;">Characters: <span id="char-count">0</span></span>
+        </div>
+    </div>
+
+    <!-- SCRIPT (No changes to JavaScript were needed for these fixes) -->
+    <script>
+        const editor = document.getElementById('editor');
+        const saveStatus = document.getElementById('save-status');
+        const wordCountEl = document.getElementById('word-count');
+        const charCountEl = document.getElementById('char-count');
+        const undoBtn = document.getElementById('undo-btn');
+        const redoBtn = document.getElementById('redo-btn');
+
+        // --- IndexedDB Implementation ---
+        const DB_NAME = 'ModernNotepadDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'documents';
+        const DOC_ID = 'currentDoc';
+        let db;
+
+        function initDB() {
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+            request.onerror = () => {
+                saveStatus.innerText = "Error: DB Disabled";
+            };
+
+            request.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(STORE_NAME)) {
+                    db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                }
+            };
+
+            request.onsuccess = (e) => {
+                db = e.target.result;
+                loadContentFromDB();
+            };
+        }
+
+        function saveContentToDB() {
+            if (!db) return;
+            const transaction = db.transaction([STORE_NAME], 'readwrite');
+            const store = transaction.objectStore(STORE_NAME);
+            store.put({ id: DOC_ID, content: editor.innerHTML, timestamp: new Date() });
+            
+            transaction.oncomplete = () => {
+                saveStatus.innerText = 'Saved!';
+                setTimeout(() => saveStatus.innerText = 'Ready', 2000);
+            };
+            transaction.onerror = () => {
+                 saveStatus.innerText = 'Save Error!';
+            }
+        }
+
+        function loadContentFromDB() {
+            if (!db) return;
+            const transaction = db.transaction([STORE_NAME], 'readonly');
+            const store = transaction.objectStore(STORE_NAME);
+            const request = store.get(DOC_ID);
+
+            request.onsuccess = (e) => {
+                if (e.target.result) {
+                    editor.innerHTML = e.target.result.content;
+                }
+                updateStats();
+                recordState(); // Record initial state for undo stack
+                saveStatus.innerText = "Ready";
+            };
+            request.onerror = () => {
+                 saveStatus.innerText = "Load Error!";
+            }
+        }
+        
+        // --- Custom Undo/Redo History Stack ---
+        let undoStack = [];
+        let redoStack = [];
+        let isUndoingOrRedoing = false;
+        let historyTimeout;
+
+        function updateHistoryButtons() {
+            undoBtn.disabled = undoStack.length <= 1;
+            redoBtn.disabled = redoStack.length === 0;
+        }
+
+        function recordState() {
+            redoStack = []; // Clear redo stack on new action
+            if (undoStack.length > 50) {
+                undoStack.shift(); // Remove the oldest state
+            }
+            undoStack.push(editor.innerHTML);
+            updateHistoryButtons();
+        }
+
+        function undo() {
+            if (undoStack.length <= 1) return;
+            isUndoingOrRedoing = true;
+
+            const currentState = undoStack.pop();
+            redoStack.push(currentState);
+            editor.innerHTML = undoStack[undoStack.length - 1];
+            
+            updateHistoryButtons();
+            updateStats();
+            isUndoingOrRedoing = false;
+        }
+        
+        function redo() {
+            if (redoStack.length === 0) return;
+            isUndoingOrRedoing = true;
+
+            const nextState = redoStack.pop();
+            undoStack.push(nextState);
+            editor.innerHTML = nextState;
+
+            updateHistoryButtons();
+            updateStats();
+            isUndoingOrRedoing = false;
+        }
+
+
+        // --- Editor and UI Functions ---
+        function applyStyle(tagName) {
+            const selection = window.getSelection();
+            if (!selection.rangeCount) return;
+
+            const range = selection.getRangeAt(0);
+            if (range.toString().length === 0) return;
+
+            const newNode = document.createElement(tagName);
+            try {
+                range.surroundContents(newNode);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            } catch (e) {
+                console.warn("Could not apply style, selection might span multiple blocks.");
+            }
+            editor.focus();
+            recordState();
+        }
+
+        function updateStats() {
+            const text = editor.innerText || "";
+            const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
+            wordCountEl.innerText = wordCount;
+            charCountEl.innerText = text.length;
+        }
+
+        function clearEditor() {
+            if (confirm('Are you sure you want to clear everything?')) {
+                editor.innerHTML = '';
+                saveContentToDB();
+                updateStats();
+                undoStack = [];
+                redoStack = [];
+                recordState();
+                editor.focus();
+            }
+        }
+        
+        function saveFile(type) {
+            const content = (type === 'html') ? editor.innerHTML : editor.innerText;
+            const mimeType = (type === 'html') ? 'text/html' : 'text/plain';
+            const filename = `document.${type}`;
+
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function toggleTheme() {
+            const newTheme = document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            document.body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('notepadTheme', newTheme);
+        }
+
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('notepadTheme');
+            if (savedTheme) {
+                document.body.setAttribute('data-theme', savedTheme);
+            }
+        }
+
+        // --- Event Listeners and Initialization ---
+        let saveTimeout;
+        editor.addEventListener('input', () => {
+            if (isUndoingOrRedoing) return;
+            
+            updateStats();
+            saveStatus.innerText = 'Typing...';
+
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(saveContentToDB, 1500);
+            
+            clearTimeout(historyTimeout);
+            historyTimeout = setTimeout(recordState, 500);
+        });
+
+        editor.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key.toLowerCase() === 'z') {
+                e.preventDefault();
+                undo();
+            }
+            if (e.ctrlKey && e.key.toLowerCase() === 'y') {
+                e.preventDefault();
+                redo();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTheme();
+            initDB();
+            editor.focus();
+        });
+    </script>
+</body>
+</html>

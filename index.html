@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AuraWork | Suite</title>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="icon.png" type="image/png">
+
+    <style>
+        /* 
+         * =============================================
+         *   Core Variables & Reset
+         * =============================================
+         */
+        :root {
+            --primary: #6200EA;
+            --primary-dark: #3700B3;
+            --secondary: #03DAC6;
+            --background: #F5F5F5;
+            --surface: #FFFFFF;
+            --text-primary: #000000;
+            --text-secondary: #757575;
+            --on-primary: #FFFFFF;
+            
+            --shadow-1: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+            --shadow-2: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+            --shadow-3: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
+            --shadow-hover: 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        /* 
+         * =============================================
+         *   Navigation / Header
+         * =============================================
+         */
+        .navbar {
+            background: var(--surface);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--primary);
+        }
+
+        .brand h1 {
+            font-size: 20px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .brand-icon {
+            font-size: 28px;
+            color: var(--secondary);
+        }
+
+        .clock-display {
+            font-family: 'Roboto Mono', monospace;
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* 
+         * =============================================
+         *   Hero Section
+         * =============================================
+         */
+        .hero {
+            background: var(--primary);
+            color: var(--on-primary);
+            text-align: center;
+            padding: 80px 24px;
+            clip-path: polygon(0 0, 100% 0, 100% 85%, 0 100%);
+            margin-bottom: 24px;
+        }
+
+        .hero h2 {
+            font-size: 48px;
+            font-weight: 300;
+            margin-bottom: 16px;
+        }
+
+        .hero p {
+            font-size: 18px;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* 
+         * =============================================
+         *   App Grid Layout
+         * =============================================
+         */
+        .container {
+            max-width: 1200px;
+            margin: -60px auto 40px; /* Pull up into hero */
+            padding: 0 24px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .app-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        /* 
+         * =============================================
+         *   App Cards
+         * =============================================
+         */
+        .app-card {
+            background: var(--surface);
+            border-radius: 8px;
+            padding: 32px 24px;
+            box-shadow: var(--shadow-2);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            height: 100%;
+            border-top: 4px solid transparent;
+        }
+
+        .app-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        /* Branding Colors for Hover borders */
+        .app-card.word:hover { border-color: #2196F3; }
+        .app-card.sheet:hover { border-color: #4CAF50; }
+        .app-card.note:hover { border-color: #FFC107; }
+        .app-card.calc:hover { border-color: #FF5722; }
+        .app-card.date:hover { border-color: #9C27B0; }
+        .app-card.chat:hover { border-color: #03DAC6; }
+
+        .app-icon {
+            background: var(--background);
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            transition: background 0.3s;
+        }
+
+        .app-icon .material-icons {
+            font-size: 40px;
+            color: var(--primary);
+        }
+
+        .app-card:hover .app-icon {
+            background: rgba(98, 0, 234, 0.05);
+        }
+
+        .app-title {
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .app-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            flex-grow: 1; /* Pushes button to bottom */
+            line-height: 1.5;
+        }
+
+        .launch-btn {
+            background: var(--primary);
+            color: var(--on-primary);
+            padding: 10px 24px;
+            border-radius: 4px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.75px;
+            transition: background 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .launch-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        /* 
+         * =============================================
+         *   About Section
+         * =============================================
+         */
+        .about-section {
+            background: #FFFFFF;
+            padding: 60px 24px;
+            text-align: center;
+            border-top: 1px solid #E0E0E0;
+            margin-top: 24px;
+        }
+
+        .about-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .about-section h2 {
+            font-weight: 300;
+            color: var(--primary);
+            margin-bottom: 16px;
+            font-size: 32px;
+        }
+
+        .about-section p {
+            color: var(--text-secondary);
+            line-height: 1.8;
+            font-size: 16px;
+        }
+
+        /* 
+         * =============================================
+         *   Footer
+         * =============================================
+         */
+        footer {
+            margin-top: auto;
+            background: #263238; /* Dark footer */
+            color: #FFFFFF;
+            padding: 24px;
+            text-align: center;
+        }
+
+        footer p {
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        /* 
+         * =============================================
+         *   Responsive Adjustments
+         * =============================================
+         */
+        @media (max-width: 600px) {
+            .hero {
+                clip-path: none;
+                padding: 40px 24px;
+                margin-bottom: 0;
+            }
+            .container {
+                margin: 24px auto;
+            }
+            .hero h2 {
+                font-size: 32px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+    <nav class="navbar">
+        <div class="brand">
+            <span class="material-icons brand-icon">layers</span>
+            <h1>AuraWork</h1>
+        </div>
+        <div class="clock-display" id="clock">
+            Loading...
+        </div>
+    </nav>
+
+    <!-- Hero Header -->
+    <header class="hero">
+        <h2>Your Complete Workspace</h2>
+        <p>A suite of private, lightweight, and powerful tools designed to boost your productivity with Material Design elegance.</p>
+    </header>
+
+    <!-- App Grid -->
+    <main class="container">
+        <div class="app-grid">
+            
+            <!-- AuraWord -->
+            <div class="app-card word">
+                <div class="app-icon">
+                    <span class="material-icons">description</span>
+                </div>
+                <h3 class="app-title">AuraWord</h3>
+                <p class="app-desc">A rich text document writer with formatting controls, printing capabilities, and local saving.</p>
+                <a href="word.html" class="launch-btn">
+                    Launch <span class="material-icons" style="font-size: 16px;">arrow_forward</span>
+                </a>
+            </div>
+
+            <!-- AuraSheet -->
+            <div class="app-card sheet">
+                <div class="app-icon">
+                    <span class="material-icons">grid_on</span>
+                </div>
+                <h3 class="app-title">AuraSheet</h3>
+                <p class="app-desc">Organize data with rows and columns. Features CSV export and formula support.</p>
+                <a href="sheet.html" class="launch-btn">
+                    Launch <span class="material-icons" style="font-size: 16px;">arrow_forward</span>
+                </a>
+            </div>
+
+            <!-- MaterialPad -->
+            <div class="app-card note">
+                <div class="app-icon">
+                    <span class="material-icons">note</span>
+                </div>
+                <h3 class="app-title">AuraPad</h3>
+                <p class="app-desc">A distraction-free notepad with character counting and auto-save functionality.</p>
+                <a href="pad.html" class="launch-btn">
+                    Launch <span class="material-icons" style="font-size: 16px;">arrow_forward</span>
+                </a>
+            </div>
+
+            <!-- AuraCalc -->
+            <div class="app-card calc">
+                <div class="app-icon">
+                    <span class="material-icons">calculate</span>
+                </div>
+                <h3 class="app-title">AuraCalc</h3>
+                <p class="app-desc">Perform quick calculations with a clean, history-tracking interface.</p>
+                <a href="calc.html" class="launch-btn">
+                    Launch <span class="material-icons" style="font-size: 16px;">arrow_forward</span>
+                </a>
+            </div>
+
+            <!-- AuraDate -->
+            <div class="app-card date">
+                <div class="app-icon">
+                    <span class="material-icons">calendar_month</span>
+                </div>
+                <h3 class="app-title">AuraDate</h3>
+                <p class="app-desc">Manage your schedule, add events, and track important dates visually.</p>
+                <a href="date.html" class="launch-btn">
+                    Launch <span class="material-icons" style="font-size: 16px;">arrow_forward</span>
+                </a>
+            </div>
+
+            <!-- AuraChat -->
+            <div class="app-card chat">
+                <div class="app-icon">
+                    <span class="material-icons">smart_toy</span>
+                </div>
+                <h3 class="app-title">AuraChat</h3>
+                <p class="app-desc">AI-powered assistant to help you brainstorm ideas and solve problems.</p>
+                <a href="ai.html" target="_blank" class="launch-btn">
+                    Launch <span class="material-icons" style="font-size: 16px;">arrow_forward</span>
+                </a>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- About Section -->
+    <section class="about-section">
+        <div class="about-container">
+            <h2>About</h2>
+            <p>
+                [Insert your description here later. This is a placeholder for the about section content. 
+                You can describe the philosophy behind AuraWork, the privacy features, 
+                or future updates planned for the suite.]
+            </p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2025 AuraWork Suite. All rights reserved.</p>
+        <p style="margin-top: 8px; font-size: 12px; color: #B0BEC5;">Privacy focused. No data leaves your device (except AuraChat).</p>
+    </footer>
+
+    <!-- Simple Clock Script -->
+    <script>
+        function updateClock() {
+            const now = new Date();
+            const options = { 
+                weekday: 'short', 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            };
+            document.getElementById('clock').textContent = now.toLocaleDateString('en-US', options);
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+    </script>
+</body>
+</html>
