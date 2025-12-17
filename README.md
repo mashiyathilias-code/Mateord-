@@ -53,11 +53,10 @@ Simply navigate to the folder and open the `index.html` file in your web browser
 For the best experience and to avoid browser security restrictions (especially when developing), use a simple local HTTP server (e.g., Python's built-in server):
 
 ```bash
-# Python 3
-python -m http.server
+python3 -m http.server
 ```
 
-Once running, access the application at the resulting local URL (usually `http://localhost:8000`).
+Once running, access the application at the resulting local URL (usually `(http://0.0.0.0:8000/)`).
 
 ---
 
