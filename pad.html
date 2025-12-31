@@ -1,108 +1,201 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Final Notepad with IndexedDB</title>
+    <title>Notepad: Plain & Dark</title>
     
-    <!-- Dependency for Icons -->
+    <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
+        /* --- 1. Variables & Animations --- */
         :root {
-            --primary-color: #0078d4;
-            --bg-color: #f5f5f5;
-            --surface-color: #ffffff;
-            --border-color: #e0e0e0;
-            --hover-color: #e6f2fa;
-            --text-color: #202020;
-            --editor-bg: #ffffff;
-            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            /* Light Mode: Soft, airy, pastel-ish */
+            --bg-light-1: #e0c3fc;
+            --bg-light-2: #8ec5fc;
+            --bg-light-3: #ffffff;
+            
+            /* Glass Variables (Light) */
+            --glass-bg: rgba(255, 255, 255, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.6);
+            --glass-blur: blur(25px);
+            
+            --text-main: #2d3436;
+            --text-muted: #636e72;
+            --accent-color: #0984e3;
+            
+            --shadow-float: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+            
+            --radius-island: 20px;
+            --radius-btn: 12px;
+            --font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
         }
 
         [data-theme="dark"] {
-            --primary-color: #4a90e2;
-            --bg-color: #1e1e1e;
-            --surface-color: #2d2d2d;
-            --border-color: #444;
-            --hover-color: #3c3c3c;
-            --text-color: #e0e0e0;
-            --editor-bg: #252525;
+            /* Dark Mode: Dark Blue to Electric Cyan Gradient */
+            --bg-light-1: #000428; /* Deepest Midnight Blue */
+            --bg-light-2: #004e92; /* Rich Royal Blue */
+            --bg-light-3: #00d2ff; /* Electric Cyan */
+            
+            /* Glass Variables (Dark) - Tinted slightly blue for cohesion */
+            --glass-bg: rgba(5, 10, 25, 0.75); 
+            --glass-border: rgba(0, 212, 255, 0.1); /* Subtle cyan border glow */
+            
+            --text-main: #f0fbff;
+            --text-muted: #82ccdd;
+            --accent-color: #00d2ff;
+            
+            --shadow-float: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+        }
+
+        /* Gradient Animation */
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            /* Dynamic Gradient Background */
+            background: linear-gradient(-45deg, var(--bg-light-1), var(--bg-light-2), var(--bg-light-3));
+            background-size: 400% 400%;
+            animation: gradientShift 12s ease infinite; /* Slowed down slightly for mood */
+            
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text-main);
             margin: 0;
             display: flex;
             flex-direction: column;
             height: 100vh;
             overflow: hidden;
+            padding: 25px;
+            gap: 20px;
+            transition: color 0.3s ease;
         }
 
-        /* Toolbar */
+        /* --- 2. Toolbar (Island) --- */
         .toolbar {
-            background-color: var(--surface-color);
-            border-bottom: 1px solid var(--border-color);
-            padding: 8px 12px;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-island);
+            box-shadow: var(--shadow-float);
+            padding: 10px 20px;
             display: flex;
             gap: 15px;
             align-items: center;
             flex-shrink: 0;
-            box-shadow: var(--shadow);
-            z-index: 100;
+            z-index: 10;
         }
 
-        .tool-group { display: flex; align-items: center; gap: 5px; }
-        .separator { width: 1px; height: 20px; background-color: var(--border-color); }
+        .tool-group { display: flex; align-items: center; gap: 8px; }
+        .separator { width: 1px; height: 20px; background: var(--text-muted); opacity: 0.3; }
 
         .toolbar button {
-            background: none; border: none; cursor: pointer;
-            padding: 6px 10px; border-radius: 5px;
-            color: var(--text-color); font-size: 16px;
-            transition: background-color 0.2s;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            width: 38px; height: 38px;
+            border-radius: var(--radius-btn);
+            color: var(--text-muted);
+            font-size: 16px;
+            transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+            display: flex; align-items: center; justify-content: center;
         }
-        .toolbar button:hover { background-color: var(--hover-color); }
-        .toolbar button:disabled { opacity: 0.4; cursor: not-allowed; }
-        .toolbar button.active { background-color: var(--primary-color); color: white; }
 
-        /* Editor Area */
+        .toolbar button:hover:not(:disabled) {
+            background: rgba(125, 125, 125, 0.1);
+            color: var(--text-main);
+            transform: translateY(-2px);
+        }
+        .toolbar button:active:not(:disabled) { transform: scale(0.95); }
+        .toolbar button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        /* --- THE WATCHERS --- */
+        .watchers-container {
+            display: flex; gap: 6px; margin: 0 15px;
+            padding: 5px;
+        }
+        .eye {
+            width: 22px; height: 22px;
+            background: #f0f0f0;
+            border-radius: 50%;
+            position: relative;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        .pupil {
+            width: 8px; height: 8px;
+            background: #111;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* --- 3. Editor (Textarea) --- */
         .editor-container { 
             flex-grow: 1; 
-            overflow-y: auto; /* This container will scroll */
-            padding: 10px; 
+            display: flex; flex-direction: column;
+            position: relative;
+            overflow: hidden;
         }
 
-       #editor {
-            background-color: var(--editor-bg);
-            /* --- CSS FIX IS HERE --- */
-            min-height: 100%; /* Start at full height */
-            height: auto; /* Allow it to grow beyond the initial height */
-            box-sizing: border-box; /* Include padding and border in the height calculation */
-            /* --- END OF FIX --- */
+        #editor {
+            width: 100%; height: 100%;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border-radius: var(--radius-island);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-float);
             
-            padding: 20px 25px;
-            box-shadow: var(--shadow); border: 1px solid var(--border-color);
-            border-radius: 8px; outline: none; font-size: 16px;
-            line-height: 1.7; color: var(--text-color);
-            overflow-wrap: break-word;
+            padding: 30px;
+            resize: none; 
+            outline: none;
+            
+            font-family: var(--font-family);
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--text-main);
+            
+            scrollbar-width: thin;
+            scrollbar-color: var(--text-muted) transparent;
         }
-        #editor:focus {
-             border-color: var(--primary-color);
-             box-shadow: 0 0 8px rgba(0, 120, 212, 0.3);
+
+        #editor::placeholder { color: var(--text-muted); opacity: 0.5; }
+
+        /* Custom Scrollbar */
+        #editor::-webkit-scrollbar { width: 8px; }
+        #editor::-webkit-scrollbar-track { background: transparent; }
+        #editor::-webkit-scrollbar-thumb {
+            background-color: var(--text-muted);
+            border-radius: 20px;
+            border: 3px solid transparent;
+            background-clip: content-box;
+            opacity: 0.3;
         }
-        #editor:empty:before { 
-            content: 'Start typing here...'; color: #aaa; pointer-events: none;
-        }
-        
-        /* Status Bar */
+
+        /* --- 4. Status Bar --- */
         .status-bar {
-            background-color: var(--surface-color); border-top: 1px solid var(--border-color);
-            padding: 6px 20px; font-size: 13px; display: flex;
-            justify-content: space-between; color: var(--text-color);
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: 50px;
+            box-shadow: var(--shadow-float);
+            padding: 8px 25px;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex; justify-content: space-between; 
+            color: var(--text-muted);
+            font-family: -apple-system, sans-serif;
             flex-shrink: 0;
         }
+        #save-status { color: var(--accent-color); }
     </style>
 </head>
 <body>
@@ -110,47 +203,45 @@
     <!-- Toolbar -->
     <div class="toolbar">
         <div class="tool-group">
-            <button onclick="saveFile('html')" title="Save as HTML"><i class="fas fa-file-code"></i></button>
-            <button onclick="saveFile('txt')" title="Save as Text"><i class="fas fa-file-alt"></i></button>
-            <button onclick="clearEditor()" title="Clear everything"><i class="fas fa-trash-alt"></i></button>
+            <button onclick="saveFile('txt')" title="Save as .txt"><i class="fas fa-save"></i></button>
+            <button onclick="clearEditor()" title="Clear"><i class="fas fa-trash-alt"></i></button>
+        </div>
+        
+        <div class="separator"></div>
+
+        <!-- THE WATCHERS -->
+        <div class="watchers-container" id="watchers">
+            <div class="eye"><div class="pupil"></div></div>
+            <div class="eye"><div class="pupil"></div></div>
         </div>
         
         <div class="separator"></div>
         
         <div class="tool-group">
-            <button id="undo-btn" onclick="undo()" title="Undo (Ctrl+Z)" disabled><i class="fas fa-undo"></i></button>
-            <button id="redo-btn" onclick="redo()" title="Redo (Ctrl+Y)" disabled><i class="fas fa-redo"></i></button>
+            <button id="undo-btn" onclick="undo()" title="Undo" disabled><i class="fas fa-undo"></i></button>
+            <button id="redo-btn" onclick="redo()" title="Redo" disabled><i class="fas fa-redo"></i></button>
         </div>
 
-        <div class="separator"></div>
-
-        <div class="tool-group">
-            <button onclick="applyStyle('B')" title="Bold"><i class="fas fa-bold"></i></button>
-            <button onclick="applyStyle('I')" title="Italic"><i class="fas fa-italic"></i></button>
-            <button onclick="applyStyle('U')" title="Underline"><i class="fas fa-underline"></i></button>
-        </div>
-        
         <div class="tool-group" style="margin-left: auto;">
              <button onclick="toggleTheme()" title="Toggle Theme"><i class="fas fa-moon"></i></button>
-             <!-- Print/PDF button removed as requested -->
         </div>
     </div>
 
     <!-- MAIN EDITOR -->
     <div class="editor-container">
-        <div id="editor" contenteditable="true" spellcheck="true"></div>
+        <textarea id="editor" spellcheck="false" placeholder="Start typing..."></textarea>
     </div>
 
     <!-- Status Bar -->
     <div class="status-bar">
-        <div><span id="save-status">Initializing DB...</span></div>
+        <div><span id="save-status">System Ready</span></div>
         <div>
             <span>Words: <span id="word-count">0</span></span>
-            <span style="margin-left: 15px;">Characters: <span id="char-count">0</span></span>
+            <span style="margin-left: 15px;">Chars: <span id="char-count">0</span></span>
         </div>
     </div>
 
-    <!-- SCRIPT (No changes to JavaScript were needed for these fixes) -->
+    <!-- SCRIPT -->
     <script>
         const editor = document.getElementById('editor');
         const saveStatus = document.getElementById('save-status');
@@ -159,20 +250,37 @@
         const undoBtn = document.getElementById('undo-btn');
         const redoBtn = document.getElementById('redo-btn');
 
-        // --- IndexedDB Implementation ---
-        const DB_NAME = 'ModernNotepadDB';
+        // --- 1. The Watchers Logic ---
+        document.addEventListener('mousemove', (e) => {
+            const eyes = document.querySelectorAll('.eye');
+            eyes.forEach(eye => {
+                const pupil = eye.querySelector('.pupil');
+                const rect = eye.getBoundingClientRect();
+                const eyeCenterX = rect.left + rect.width / 2;
+                const eyeCenterY = rect.top + rect.height / 2;
+                
+                const angle = Math.atan2(e.clientY - eyeCenterY, e.clientX - eyeCenterX);
+                const maxMove = 5; 
+                const distance = Math.min(maxMove, Math.hypot(e.clientX - eyeCenterX, e.clientY - eyeCenterY));
+                
+                const pupilX = Math.cos(angle) * distance;
+                const pupilY = Math.sin(angle) * distance;
+                
+                pupil.style.transform = `translate(-50%, -50%) translate(${pupilX}px, ${pupilY}px)`;
+            });
+        });
+
+        // --- 2. Database (IndexedDB) ---
+        const DB_NAME = 'PlainPadDB';
         const DB_VERSION = 1;
-        const STORE_NAME = 'documents';
-        const DOC_ID = 'currentDoc';
+        const STORE_NAME = 'notes';
+        const DOC_ID = 'scratchpad';
         let db;
 
         function initDB() {
             const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-            request.onerror = () => {
-                saveStatus.innerText = "Error: DB Disabled";
-            };
-
+            request.onerror = () => saveStatus.innerText = "DB Disabled";
+            
             request.onupgradeneeded = (e) => {
                 const db = e.target.result;
                 if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -182,185 +290,153 @@
 
             request.onsuccess = (e) => {
                 db = e.target.result;
-                loadContentFromDB();
+                loadContent();
             };
         }
 
-        function saveContentToDB() {
+        function saveContent() {
             if (!db) return;
             const transaction = db.transaction([STORE_NAME], 'readwrite');
             const store = transaction.objectStore(STORE_NAME);
-            store.put({ id: DOC_ID, content: editor.innerHTML, timestamp: new Date() });
+            store.put({ id: DOC_ID, content: editor.value, timestamp: new Date() });
             
             transaction.oncomplete = () => {
-                saveStatus.innerText = 'Saved!';
+                saveStatus.innerText = 'Saved';
                 setTimeout(() => saveStatus.innerText = 'Ready', 2000);
             };
-            transaction.onerror = () => {
-                 saveStatus.innerText = 'Save Error!';
-            }
         }
 
-        function loadContentFromDB() {
+        function loadContent() {
             if (!db) return;
             const transaction = db.transaction([STORE_NAME], 'readonly');
-            const store = transaction.objectStore(STORE_NAME);
-            const request = store.get(DOC_ID);
+            const request = transaction.objectStore(STORE_NAME).get(DOC_ID);
 
             request.onsuccess = (e) => {
                 if (e.target.result) {
-                    editor.innerHTML = e.target.result.content;
+                    editor.value = e.target.result.content;
                 }
                 updateStats();
-                recordState(); // Record initial state for undo stack
-                saveStatus.innerText = "Ready";
+                recordState(); 
             };
-            request.onerror = () => {
-                 saveStatus.innerText = "Load Error!";
-            }
         }
-        
-        // --- Custom Undo/Redo History Stack ---
+
+        // --- 3. History (Undo/Redo) ---
         let undoStack = [];
         let redoStack = [];
-        let isUndoingOrRedoing = false;
-        let historyTimeout;
-
-        function updateHistoryButtons() {
-            undoBtn.disabled = undoStack.length <= 1;
-            redoBtn.disabled = redoStack.length === 0;
-        }
+        let isInternalUpdate = false;
 
         function recordState() {
-            redoStack = []; // Clear redo stack on new action
-            if (undoStack.length > 50) {
-                undoStack.shift(); // Remove the oldest state
-            }
-            undoStack.push(editor.innerHTML);
-            updateHistoryButtons();
+            if (undoStack[undoStack.length - 1] === editor.value) return; 
+            
+            redoStack = [];
+            if (undoStack.length > 50) undoStack.shift();
+            undoStack.push(editor.value);
+            updateButtons();
         }
 
         function undo() {
             if (undoStack.length <= 1) return;
-            isUndoingOrRedoing = true;
-
-            const currentState = undoStack.pop();
-            redoStack.push(currentState);
-            editor.innerHTML = undoStack[undoStack.length - 1];
+            isInternalUpdate = true;
             
-            updateHistoryButtons();
+            const current = undoStack.pop();
+            redoStack.push(current);
+            
+            editor.value = undoStack[undoStack.length - 1];
+            updateButtons();
             updateStats();
-            isUndoingOrRedoing = false;
+            isInternalUpdate = false;
         }
-        
+
         function redo() {
             if (redoStack.length === 0) return;
-            isUndoingOrRedoing = true;
-
-            const nextState = redoStack.pop();
-            undoStack.push(nextState);
-            editor.innerHTML = nextState;
-
-            updateHistoryButtons();
+            isInternalUpdate = true;
+            
+            const next = redoStack.pop();
+            undoStack.push(next);
+            
+            editor.value = next;
+            updateButtons();
             updateStats();
-            isUndoingOrRedoing = false;
+            isInternalUpdate = false;
         }
 
-
-        // --- Editor and UI Functions ---
-        function applyStyle(tagName) {
-            const selection = window.getSelection();
-            if (!selection.rangeCount) return;
-
-            const range = selection.getRangeAt(0);
-            if (range.toString().length === 0) return;
-
-            const newNode = document.createElement(tagName);
-            try {
-                range.surroundContents(newNode);
-                selection.removeAllRanges();
-                selection.addRange(range);
-            } catch (e) {
-                console.warn("Could not apply style, selection might span multiple blocks.");
-            }
-            editor.focus();
-            recordState();
+        function updateButtons() {
+            undoBtn.disabled = undoStack.length <= 1;
+            redoBtn.disabled = redoStack.length === 0;
         }
 
+        // --- 4. Utilities ---
         function updateStats() {
-            const text = editor.innerText || "";
+            const text = editor.value || "";
             const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
             wordCountEl.innerText = wordCount;
             charCountEl.innerText = text.length;
         }
 
         function clearEditor() {
-            if (confirm('Are you sure you want to clear everything?')) {
-                editor.innerHTML = '';
-                saveContentToDB();
+            if (confirm('Clear everything?')) {
+                editor.value = '';
+                saveContent();
                 updateStats();
-                undoStack = [];
-                redoStack = [];
                 recordState();
                 editor.focus();
             }
         }
         
-        function saveFile(type) {
-            const content = (type === 'html') ? editor.innerHTML : editor.innerText;
-            const mimeType = (type === 'html') ? 'text/html' : 'text/plain';
-            const filename = `document.${type}`;
-
-            const blob = new Blob([content], { type: mimeType });
+        function saveFile() {
+            const blob = new Blob([editor.value], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = filename;
+            a.download = `note_${new Date().toISOString().slice(0,10)}.txt`;
             a.click();
             URL.revokeObjectURL(url);
         }
 
         function toggleTheme() {
-            const newTheme = document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-            document.body.setAttribute('data-theme', newTheme);
-            localStorage.setItem('notepadTheme', newTheme);
+            const body = document.body;
+            const newTheme = body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('plainPadTheme', newTheme);
         }
 
-        function loadTheme() {
-            const savedTheme = localStorage.getItem('notepadTheme');
-            if (savedTheme) {
-                document.body.setAttribute('data-theme', savedTheme);
-            }
-        }
+        // --- 5. Event Listeners ---
+        let typeTimeout;
 
-        // --- Event Listeners and Initialization ---
-        let saveTimeout;
         editor.addEventListener('input', () => {
-            if (isUndoingOrRedoing) return;
+            if (isInternalUpdate) return;
             
             updateStats();
             saveStatus.innerText = 'Typing...';
 
-            clearTimeout(saveTimeout);
-            saveTimeout = setTimeout(saveContentToDB, 1500);
-            
-            clearTimeout(historyTimeout);
-            historyTimeout = setTimeout(recordState, 500);
+            clearTimeout(typeTimeout);
+            typeTimeout = setTimeout(() => {
+                saveContent();
+                recordState();
+            }, 800);
         });
 
         editor.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.key.toLowerCase() === 'z') {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
                 e.preventDefault();
-                undo();
+                if (e.shiftKey) redo(); else undo();
             }
-            if (e.ctrlKey && e.key.toLowerCase() === 'y') {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
                 e.preventDefault();
                 redo();
+            }
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = editor.selectionStart;
+                const end = editor.selectionEnd;
+                editor.value = editor.value.substring(0, start) + "\t" + editor.value.substring(end);
+                editor.selectionStart = editor.selectionEnd = start + 1;
             }
         });
 
         document.addEventListener('DOMContentLoaded', () => {
-            loadTheme();
+            const savedTheme = localStorage.getItem('plainPadTheme');
+            if (savedTheme) document.body.setAttribute('data-theme', savedTheme);
             initDB();
             editor.focus();
         });
