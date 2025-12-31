@@ -1,120 +1,265 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Spreadsheet Engine (XLSX Enabled)</title>
+    <title>AuraSheet V2.0</title>
     <!-- External Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.js"></script>
+    <!-- Phosphor Icons for modern UI look -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Fira+Code&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 
+        /* --- THEME CONFIGURATION --- */
         :root {
-            --primary-color: #0078d4;
-            --primary-color-light: #eff6fc;
-            --primary-color-focus: rgba(0, 120, 212, 0.25);
-            --light-gray: #f8f9fa;
-            --medium-gray: #dee2e6;
-            --dark-gray: #6c757d;
-            --text-color: #212529;
-            --border-color: #ced4da;
-            --error-color: #d13438;
-            --excel-green: #107c41;
+            /* Light Mode Variables */
+            --bg-gradient: radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+                           radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+                           radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+            --bg-color: #eef2f9;
+            --blob-1: #62a1ff;
+            --blob-2: #ff94c2;
+            --blob-3: #a8edea;
+
+            --glass-surface: rgba(255, 255, 255, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.5);
+            --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+            
+            --text-main: #2d3748;
+            --text-muted: #718096;
+            --primary-accent: #3182ce;
+            
+            --grid-line: rgba(0, 0, 0, 0.08);
+            --header-bg: rgba(255, 255, 255, 0.85);
+            --header-text: #4a5568;
+            
+            --selection-border: #3182ce;
+            --selection-bg: rgba(49, 130, 206, 0.15);
         }
+
+        body.dark-mode {
+            /* Dark Mode Variables */
+            --bg-color: #0f172a;
+            --blob-1: #4c1d95;
+            --blob-2: #be185d;
+            --blob-3: #1e40af;
+
+            --glass-surface: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --primary-accent: #60a5fa;
+
+            --grid-line: rgba(255, 255, 255, 0.08);
+            --header-bg: rgba(15, 23, 42, 0.85);
+            --header-text: #cbd5e1;
+
+            --selection-border: #60a5fa;
+            --selection-bg: rgba(96, 165, 250, 0.2);
+        }
+
+        /* --- GLOBAL STYLES --- */
+        * { box-sizing: border-box; }
 
         body {
             font-family: 'Inter', sans-serif;
             margin: 0;
+            height: 100vh;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            overflow: hidden;
             display: flex;
             flex-direction: column;
-            height: 100vh;
-            background-color: #f5f5f5;
-            color: var(--text-color);
+            transition: color 0.3s ease, background-color 0.3s ease;
+        }
+
+        /* Ambient Background Blobs */
+        .background-blobs {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
             overflow: hidden;
+            pointer-events: none;
+        }
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.6;
+            animation: float 20s infinite alternate;
+        }
+        .blob-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: var(--blob-1); animation-delay: 0s; }
+        .blob-2 { bottom: -10%; right: -10%; width: 40vw; height: 40vw; background: var(--blob-2); animation-delay: -5s; }
+        .blob-3 { top: 40%; left: 40%; width: 30vw; height: 30vw; background: var(--blob-3); animation-delay: -10s; }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(20px, 40px) scale(1.1); }
+        }
+
+        /* --- GLASS MIXIN CLASSES --- */
+        .glass-panel {
+            background: var(--glass-surface);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
         }
 
         /* --- TOOLBAR --- */
         #toolbar {
-            padding: 8px 16px;
-            background-color: #ffffff;
-            border-bottom: 1px solid var(--medium-gray);
+            padding: 10px 20px;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 16px;
             flex-wrap: wrap;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-            z-index: 30;
+            z-index: 50;
+            border-bottom: 1px solid var(--glass-border);
         }
+
         .toolbar-group {
             display: flex;
             align-items: center;
-            border-right: 1px solid var(--medium-gray);
-            padding-right: 12px;
+            gap: 4px;
+            padding-right: 16px;
+            border-right: 1px solid var(--glass-border);
         }
-        .toolbar-group:last-child { border-right: none; }
-        
-        #toolbar button {
-            padding: 6px 10px;
-            border-radius: 4px;
-            border: 1px solid transparent;
-            background: transparent;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 14px;
-        }
-        #toolbar button:hover { background-color: var(--light-gray); color: var(--primary-color); }
-        
-        /* Specific button styles */
-        #download-xlsx { color: var(--excel-green); font-weight: 600; }
-        #download-xlsx:hover { background-color: #e6f2ea; }
-        #download-csv { color: purple; font-weight: 600}
+        .toolbar-group:last-of-type { border-right: none; }
 
-        /* Icons for alignment */
-        .icon-btn::before {
-            content: ''; display: inline-block; width: 16px; height: 16px;
-            background-color: currentColor;
-            -webkit-mask-size: contain; mask-size: contain;
-            -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
-            -webkit-mask-position: center; mask-position: center;
+        button {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-main);
+            padding: 6px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px; /* Icon size */
         }
-        #align-left-btn::before { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 3h12v2H2V3zm0 4h8v2H2V7zm0 4h12v2H2v-2z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 3h12v2H2V3zm0 4h8v2H2V7zm0 4h12v2H2v-2z'/%3E%3C/svg%3E"); }
-        #align-center-btn::before { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 3h12v2H2V3zm2 4h8v2H4V7zm-2 4h12v2H2v-2z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 3h12v2H2V3zm2 4h8v2H4V7zm-2 4h12v2H2v-2z'/%3E%3C/svg%3E"); }
-        #align-right-btn::before { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 3h12v2H2V3zm4 4h8v2H6V7zm-4 4h12v2H2v-2z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 3h12v2H2V3zm4 4h8v2H6V7zm-4 4h12v2H2v-2z'/%3E%3C/svg%3E"); }
+        
+        button:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: var(--primary-accent);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        button:active { transform: translateY(0); }
+
+        /* Text Buttons */
+        .text-btn {
+            font-size: 13px;
+            font-weight: 500;
+            padding: 6px 12px;
+        }
+
+        /* Inputs */
+        input[type="color"] {
+            border: none;
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            background: none;
+            cursor: pointer;
+        }
+
+        /* Theme Toggle */
+        #theme-toggle {
+            margin-left: auto;
+            color: var(--text-muted);
+        }
+        #theme-toggle:hover { color: var(--text-main); }
 
         /* --- FORMULA BAR --- */
         #formula-bar {
             display: flex;
             align-items: center;
-            padding: 8px 16px;
-            background-color: #fff;
-            border-bottom: 1px solid var(--medium-gray);
+            padding: 8px 20px;
+            gap: 10px;
+            z-index: 40;
         }
-        #current-cell-label {
-            font-weight: 600; padding: 6px 12px;
-            background-color: var(--light-gray);
-            border: 1px solid var(--border-color);
-            border-right: none; border-radius: 4px 0 0 4px;
-            font-family: 'Fira Code', monospace;
-            min-width: 40px; text-align: center;
-        }
-        #formula-input {
-            flex-grow: 1; padding: 6px;
-            border: 1px solid var(--border-color);
-            border-radius: 0 4px 4px 0;
-            outline: none;
-            font-family: 'Fira Code', monospace;
-        }
-        #formula-input:focus { border-color: var(--primary-color); }
 
-        /* --- GRID CONTAINER (Virtualization) --- */
+        #current-cell-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            font-size: 13px;
+            padding: 6px 12px;
+            background: rgba(0,0,0,0.05);
+            border-radius: 6px;
+            min-width: 45px;
+            text-align: center;
+            color: var(--primary-accent);
+            border: 1px solid var(--glass-border);
+        }
+
+        #formula-input {
+            flex-grow: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--glass-border);
+            border-radius: 6px;
+            background: rgba(0,0,0,0.05);
+            color: var(--text-main);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s;
+        }
+        #formula-input:focus {
+            background: rgba(0,0,0,0.1);
+            border-color: var(--primary-accent);
+            box-shadow: 0 0 0 2px var(--selection-bg);
+        }
+
+        /* --- GRID CONTAINER --- */
+        #grid-wrapper {
+            flex-grow: 1;
+            margin: 10px 20px 20px 20px;
+            border-radius: 12px;
+            overflow: hidden; /* For border radius */
+            border: 1px solid var(--glass-border);
+            background: var(--glass-surface);
+            backdrop-filter: blur(12px);
+            box-shadow: var(--glass-shadow);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
         #grid-container {
             flex-grow: 1;
             overflow: auto;
             position: relative;
-            background-color: #fff;
+            /* Scrollbar styling */
+            scrollbar-width: thin;
+            scrollbar-color: var(--text-muted) transparent;
         }
+        
+        #grid-container::-webkit-scrollbar { width: 10px; height: 10px; }
+        #grid-container::-webkit-scrollbar-track { background: transparent; }
+        #grid-container::-webkit-scrollbar-thumb { 
+            background: rgba(128,128,128,0.3); 
+            border-radius: 5px; 
+            border: 2px solid transparent; 
+            background-clip: content-box; 
+        }
+        #grid-container::-webkit-scrollbar-thumb:hover { background-color: rgba(128,128,128,0.5); }
+
+        /* --- TABLE STYLES --- */
+        #spreadsheet {
+            border-collapse: collapse;
+            table-layout: fixed;
+            /* Removes spacing between cells */
+        }
+
         #sizer {
             position: absolute;
             top: 0; left: 0;
@@ -122,108 +267,158 @@
             opacity: 0;
             pointer-events: none;
         }
-        #spreadsheet {
-            position: absolute;
-            top: 0; left: 0;
-            border-collapse: collapse;
-            table-layout: fixed;
-        }
 
-        /* --- CELLS & HEADERS --- */
+        /* Headers (Sticky) */
         #spreadsheet th, #spreadsheet td {
-            border: 1px solid var(--medium-gray);
-            padding: 0 4px;
-            height: 28px; /* Must match JS ROW_HEIGHT */
+            height: 28px;
+            padding: 0 6px;
             box-sizing: border-box;
+            border: 1px solid var(--grid-line);
             white-space: nowrap;
             overflow: hidden;
             font-size: 13px;
             cursor: default;
         }
 
-        /* Headers */
         #spreadsheet th {
-            background-color: var(--light-gray);
+            background: var(--header-bg); /* Opaque enough to hide scrolling content */
+            backdrop-filter: blur(10px);
+            color: var(--header-text);
             font-weight: 600;
             text-align: center;
+            position: sticky;
+            z-index: 10;
             user-select: none;
         }
         
+        /* Row Headers (1, 2, 3...) */
+        #spreadsheet td:first-child {
+            background: var(--header-bg);
+            backdrop-filter: blur(10px);
+            color: var(--header-text);
+            font-weight: 500;
+            text-align: center;
+            border-right: 2px solid var(--glass-border);
+            position: sticky;
+            left: 0;
+            z-index: 10;
+        }
+
+        /* The corner piece */
+        #spreadsheet th:first-child {
+            z-index: 20 !important;
+            border-right: 2px solid var(--glass-border);
+            background: var(--header-bg);
+        }
+
         /* Cells */
         .cell {
-            background-color: #fff;
+            background: transparent; 
+            color: var(--text-main);
             outline: none;
         }
+
         .cell.selected {
-            border: 2px solid var(--primary-color);
-            background-color: rgba(0, 120, 212, 0.05);
-            z-index: 5; /* Show border above neighbors */
+            border: 2px solid var(--selection-border) !important;
+            background-color: var(--selection-bg);
+            z-index: 5;
             position: relative;
         }
-        .cell.editing {
-            background-color: #fff;
-            cursor: text;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-            z-index: 6;
-            overflow: visible;
-        }
-        .cell-error { color: var(--error-color); font-weight: bold; }
 
-        /* Custom Scrollbar */
-        #grid-container::-webkit-scrollbar { width: 14px; height: 14px; }
-        #grid-container::-webkit-scrollbar-track { background: #f1f1f1; }
-        #grid-container::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 7px; border: 3px solid #f1f1f1; }
-        #grid-container::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
-        
-        /* Corner Button */
-        #spreadsheet th:first-child {
-            z-index: 20 !important; /* Always on top */
+        .cell.editing {
+            background-color: var(--bg-color); /* Solid bg when editing for readability */
+            color: var(--text-main);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 6;
+            cursor: text;
         }
+
+        .cell-error {
+            color: #ef4444; /* Red */
+            font-weight: bold;
+        }
+        
+        /* Tooltip style for hints */
+        [title]:hover::after {
+            content: attr(title);
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #000;
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            white-space: nowrap;
+            z-index: 100;
+            pointer-events: none;
+        }
+
     </style>
 </head>
 <body>
 
-<input type="file" id="file-input" style="display: none;" accept=".csv, .xlsx">
-  
-<div id="toolbar">
-    <div class="toolbar-group">
-        <button id="open-file-btn">Open</button>
-        <button id="download-csv">Download CSV (Uses less storage)</button>
-        <!-- Modified Button -->
-        <button id="download-xlsx">Download XLSX (More supported)</button>
-    </div>
-    <div class="toolbar-group">
-        <button id="bold-btn"><b>B</b></button>
-        <button id="italic-btn"><i>I</i></button>
-        <button id="underline-btn"><u>U</u></button>
-    </div>
-    <div class="toolbar-group">
-        <button id="align-left-btn" class="icon-btn" title="Align Left"></button>
-        <button id="align-center-btn" class="icon-btn" title="Align Center"></button>
-        <button id="align-right-btn" class="icon-btn" title="Align Right"></button>
-    </div>
-    <div class="toolbar-group">
-        <label for="font-color-picker" style="font-size:12px;">Text:</label>
-        <input type="color" id="font-color-picker" value="#000000">
-        <label for="bg-color-picker" style="font-size:12px; margin-left:5px;">Fill:</label>
-        <input type="color" id="bg-color-picker" value="#ffffff">
-    </div>
-    <div class="toolbar-group">
-        <button id="add-row-btn">Add Row</button>
-        <button id="add-col-btn"> Add Col</button>
-        <button id="clear-all-btn" style="color: #d13438;">Clear</button>
-    </div>
-</div>
-  
-<div id="formula-bar">
-    <div id="current-cell-label">A1</div>
-    <input type="text" id="formula-input">
+<!-- Ambient Background -->
+<div class="background-blobs">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
 </div>
 
-<!-- Grid Container -->
-<div id="grid-container">
-    <div id="sizer"></div>
-    <table id="spreadsheet"></table>
+<input type="file" id="file-input" style="display: none;" accept=".csv, .xlsx">
+
+<!-- Toolbar -->
+<div id="toolbar" class="glass-panel">
+    <div class="toolbar-group">
+        <button id="open-file-btn" class="text-btn"><i class="ph ph-folder-open" style="margin-right:5px;"></i> Open</button>
+        <button id="download-xlsx" class="text-btn" style="color: #107c41;"><i class="ph ph-file-xls" style="margin-right:5px;"></i> XLSX</button>
+        <button id="download-csv" class="text-btn" style="color: #805ad5;"><i class="ph ph-file-csv" style="margin-right:5px;"></i> CSV</button>
+    </div>
+    <div class="toolbar-group">
+        <button id="bold-btn"><i class="ph ph-text-b"></i></button>
+        <button id="italic-btn"><i class="ph ph-text-italic"></i></button>
+        <button id="underline-btn"><i class="ph ph-text-underline"></i></button>
+    </div>
+    <div class="toolbar-group">
+        <button id="align-left-btn"><i class="ph ph-text-align-left"></i></button>
+        <button id="align-center-btn"><i class="ph ph-text-align-center"></i></button>
+        <button id="align-right-btn"><i class="ph ph-text-align-right"></i></button>
+    </div>
+    <div class="toolbar-group" style="font-size: 13px; font-weight: 500;">
+        <div style="display: flex; align-items: center; gap: 5px;">
+            <i class="ph ph-text-t"></i>
+            <input type="color" id="font-color-picker" value="#000000">
+        </div>
+        <div style="display: flex; align-items: center; gap: 5px; margin-left: 8px;">
+            <i class="ph ph-paint-bucket"></i>
+            <input type="color" id="bg-color-picker" value="#ffffff">
+        </div>
+    </div>
+    <div class="toolbar-group">
+        <button id="add-row-btn" class="text-btn"><i class="ph ph-plus"></i> Row</button>
+        <button id="add-col-btn" class="text-btn"><i class="ph ph-plus"></i> Col</button>
+        <button id="clear-all-btn" class="text-btn" style="color: #ef4444;"><i class="ph ph-trash"></i></button>
+    </div>
+    
+    <button id="theme-toggle" title="Toggle Dark Mode">
+        <i class="ph ph-moon"></i>
+    </button>
+</div>
+
+<!-- Formula Bar -->
+<div id="formula-bar" class="glass-panel" style="border-top: none;">
+    <div id="current-cell-label">A1</div>
+    <i class="ph ph-function" style="color: var(--text-muted);"></i>
+    <input type="text" id="formula-input" placeholder="Enter value or =SUM(A1:B2)...">
+</div>
+
+<!-- Main Grid Wrapper -->
+<div id="grid-wrapper">
+    <div id="grid-container">
+        <div id="sizer"></div>
+        <table id="spreadsheet"></table>
+    </div>
 </div>
 
 <script>
@@ -236,6 +431,7 @@
     const ROW_HEADER_WIDTH = 50; 
     const BUFFER = 5; 
     const STORAGE_KEY = 'spreadsheet_data_v3';
+    const THEME_KEY = 'glass_sheet_theme';
 
     // --- STATE ---
     let sheetData = {};
@@ -272,6 +468,27 @@
         return `${colIndexToLetter(c)}${r + 1}`; 
     }
 
+    // --- THEME LOGIC ---
+    function initTheme() {
+        const savedTheme = localStorage.getItem(THEME_KEY);
+        const toggleBtn = document.getElementById('theme-toggle');
+        const icon = toggleBtn.querySelector('i');
+        
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-mode');
+            icon.classList.replace('ph-moon', 'ph-sun');
+        }
+
+        toggleBtn.onclick = () => {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light');
+            
+            if (isDark) icon.classList.replace('ph-moon', 'ph-sun');
+            else icon.classList.replace('ph-sun', 'ph-moon');
+        };
+    }
+
     // --- DATA PERSISTENCE ---
     function saveToLocalStorage() {
         try {
@@ -293,15 +510,13 @@
         }
     }
 
-    // --- VIRTUALIZATION ENGINE (With Sticky Headers) ---
+    // --- VIRTUALIZATION ENGINE ---
     function renderVisibleGrid() {
-        // 1. Set Scrollable Area Size
         const totalHeight = numRows * ROW_HEIGHT + HEADER_HEIGHT;
         const totalWidth = numCols * COL_WIDTH + ROW_HEADER_WIDTH;
         sizer.style.height = `${totalHeight}px`;
         sizer.style.width = `${totalWidth}px`;
 
-        // 2. Get Viewport Info
         const { scrollTop, scrollLeft, clientWidth, clientHeight } = gridContainer;
         
         const firstRow = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - BUFFER);
@@ -309,48 +524,41 @@
         const firstCol = Math.max(0, Math.floor(scrollLeft / COL_WIDTH) - BUFFER);
         const lastCol = Math.min(numCols, Math.ceil((scrollLeft + clientWidth) / COL_WIDTH) + BUFFER);
 
-        // 3. Clear Table
         spreadsheet.innerHTML = '';
         const frag = document.createDocumentFragment();
 
-        // --- RENDER HEADER ROW (Freeze Panes: Top) ---
+        // --- HEADER ROW ---
         const trHeader = document.createElement('tr');
         
-        // A. Corner Cell (Sticky Top & Left)
         const thCorner = document.createElement('th');
         thCorner.style.minWidth = `${ROW_HEADER_WIDTH}px`;
         thCorner.style.position = 'sticky';
         thCorner.style.left = '0';
         thCorner.style.top = '0';
-        thCorner.style.zIndex = '20'; // Highest priority
-        thCorner.style.backgroundColor = '#f8f9fa';
-        thCorner.style.borderRight = '2px solid #dee2e6';
+        thCorner.innerHTML = '<i class="ph ph-corners-out"></i>';
         trHeader.appendChild(thCorner);
 
-        // B. Spacer for scrolled-away left columns
         if (firstCol > 0) {
             const thSpacer = document.createElement('th');
             thSpacer.style.minWidth = `${firstCol * COL_WIDTH}px`;
             thSpacer.style.padding = '0';
             thSpacer.style.border = 'none';
+            thSpacer.style.background = 'transparent'; 
             trHeader.appendChild(thSpacer);
         }
 
-        // C. Visible Column Headers
         for (let j = firstCol; j < lastCol; j++) {
             const th = document.createElement('th');
             th.textContent = columnHeaders[j] || colIndexToLetter(j);
             th.dataset.col = j;
-            // Force Sticky Top
             th.style.minWidth = `${COL_WIDTH}px`;
             th.style.position = 'sticky';
             th.style.top = '0';
-            th.style.zIndex = '10';
             trHeader.appendChild(th);
         }
         frag.appendChild(trHeader);
 
-        // --- VERTICAL SPACER (Pushes rows down) ---
+        // --- VERTICAL SPACER ---
         if (firstRow > 0) {
             const trSpacer = document.createElement('tr');
             trSpacer.style.height = `${firstRow * ROW_HEIGHT}px`;
@@ -362,24 +570,17 @@
             frag.appendChild(trSpacer);
         }
 
-        // --- RENDER DATA ROWS ---
+        // --- DATA ROWS ---
         for (let i = firstRow; i < lastRow; i++) {
             const tr = document.createElement('tr');
             
-            // A. Row Header (Freeze Panes: Left)
+            // Row Header
             const rh = document.createElement('td');
             rh.textContent = i + 1;
             rh.style.minWidth = `${ROW_HEADER_WIDTH}px`;
-            rh.style.backgroundColor = '#f8f9fa';
-            rh.style.fontWeight = '600';
-            rh.style.textAlign = 'center';
-            rh.style.position = 'sticky';
-            rh.style.left = '0';
-            rh.style.zIndex = '10';
-            rh.style.borderRight = '2px solid #dee2e6';
             tr.appendChild(rh);
 
-            // B. Horizontal Spacer
+            // Horizontal Spacer
             if (firstCol > 0) {
                 const tdSpacer = document.createElement('td');
                 tdSpacer.style.minWidth = `${firstCol * COL_WIDTH}px`;
@@ -388,7 +589,7 @@
                 tr.appendChild(tdSpacer);
             }
 
-            // C. Data Cells
+            // Cells
             for (let j = firstCol; j < lastCol; j++) {
                 const td = document.createElement('td');
                 const id = indicesToCellId(i, j);
@@ -396,7 +597,6 @@
                 td.classList.add('cell');
                 if (id === selectedCellId) td.classList.add('selected');
                 
-                // Data & Styling
                 const data = sheetData[id];
                 const value = data ? data.value : '';
                 td.textContent = value !== undefined ? value : '';
@@ -439,10 +639,9 @@
         const insertIndex = selectedRow + 1;
         numRows++;
         
-        // Safe move
         const newSheetData = { ...sheetData };
         const sortedKeys = Object.keys(sheetData).filter(k => cellIdToIndices(k).row >= insertIndex)
-            .sort((a,b) => cellIdToIndices(b).row - cellIdToIndices(a).row); // Sort descending
+            .sort((a,b) => cellIdToIndices(b).row - cellIdToIndices(a).row);
 
         sortedKeys.forEach(oldId => {
             const {row, col} = cellIdToIndices(oldId);
@@ -599,7 +798,6 @@
             const data = sheetData[curr];
             if (data?.formula) data.value = evaluateFormula(data.formula);
             const cell = document.getElementById(curr);
-            // Manually update DOM for this specific cell if visible, to avoid full re-render
             if (cell) {
                 cell.textContent = data.value !== undefined ? data.value : '';
                 if (String(data.value).startsWith('#')) cell.classList.add('cell-error');
@@ -637,7 +835,6 @@
         }
         selectedCellId = newId;
         
-        // Auto-scroll logic
         const {row, col} = cellIdToIndices(newId);
         const top = row * ROW_HEIGHT;
         const left = col * COL_WIDTH;
@@ -649,7 +846,7 @@
         if (left < scrollLeft) gridContainer.scrollLeft = left;
         else if (left > scrollLeft + clientWidth - COL_WIDTH) gridContainer.scrollLeft = left - clientWidth + COL_WIDTH + ROW_HEADER_WIDTH;
 
-        renderVisibleGrid(); // Ensure visible
+        renderVisibleGrid(); 
         
         const next = document.getElementById(newId);
         if(next) next.classList.add('selected');
@@ -739,15 +936,13 @@
         const blob = new Blob([rows.join('\n')], {type:'text/csv'});
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = 'sheet.csv';
+        a.download = 'document.csv';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
     }
 
-    // --- NEW FEATURE: HTML TO XLSX CONVERTER LOGIC INTEGRATED ---
     function downloadXLSX() {
-        // 1. Calculate Bounds
         let maxR = -1, maxC = -1;
         Object.keys(sheetData).forEach(k => {
             const {row, col} = cellIdToIndices(k);
@@ -756,27 +951,18 @@
         });
         if(maxR === -1) return alert("Sheet is empty");
 
-        // 2. Construct Virtual HTML Table String
-        // Note: We do NOT include the row headers (1, 2, 3) or column headers (A, B, C) 
-        // unless custom column headers exist, as per instructions.
-        
         let html = '<table><tbody>';
-        
-        // Check if custom headers exist
         const hasCustomHeaders = columnHeaders.some(h => h !== undefined);
 
-        // Only add a header row if user has customized headers
         if (hasCustomHeaders) {
             html += '<tr>';
             for (let c = 0; c <= maxC; c++) {
-                // Use custom name or empty string if strictly hiding default "A, B, C"
                 let headerText = columnHeaders[c] || ""; 
                 html += `<th>${headerText}</th>`;
             }
             html += '</tr>';
         }
 
-        // Add Data Rows
         for(let r=0; r<=maxR; r++) {
             html += '<tr>';
             for(let c=0; c<=maxC; c++) {
@@ -784,7 +970,6 @@
                 const cell = sheetData[id];
                 const value = cell ? (cell.value !== undefined ? cell.value : '') : '';
                 
-                // Convert JS styles to CSS string
                 let styleStr = '';
                 if (cell && cell.style) {
                     styleStr = Object.entries(cell.style)
@@ -798,19 +983,14 @@
         }
         html += '</tbody></table>';
 
-        // 3. Parse HTML and Convert to Workbook
         try {
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
             const table = doc.querySelector('table');
-
-            // Create SheetJS Workbook
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.table_to_sheet(table);
             XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-
-            // 4. Download
-            XLSX.writeFile(wb, "spreadsheet.xlsx");
+            XLSX.writeFile(wb, "document.xlsx");
         } catch(e) {
             console.error(e);
             alert("Error converting to XLSX");
@@ -825,12 +1005,12 @@
         formulaInput = document.getElementById('formula-input');
         currentCellLabel = document.getElementById('current-cell-label');
 
+        initTheme();
         loadFromLocalStorage();
         buildDependencyGraph();
         recalculateSheet();
         selectCell('A1');
 
-        // Event Listeners
         gridContainer.addEventListener('scroll', () => requestAnimationFrame(renderVisibleGrid));
         
         spreadsheet.addEventListener('click', e => {
@@ -878,8 +1058,12 @@
             else if(e.key === 'ArrowRight') selectCell(indicesToCellId(row, Math.min(numCols-1, col+1)));
         });
 
-        // Toolbar
-        const click = (id, fn) => document.getElementById(id).onclick = fn;
+        // Toolbar Events
+        const click = (id, fn) => {
+            const el = document.getElementById(id);
+            if(el) el.onclick = fn;
+        };
+        
         const apply = (s, v) => { 
             if(!selectedCellId) return; 
             sheetData[selectedCellId] = sheetData[selectedCellId] || {}; 
@@ -898,9 +1082,9 @@
         click('align-right-btn', () => apply('textAlign', 'right'));
         click('add-row-btn', addRow);
         click('add-col-btn', addColumn);
-        click('clear-all-btn', () => { if(confirm("Clear all?")) { localStorage.removeItem(STORAGE_KEY); location.reload(); }});
+        click('clear-all-btn', () => { if(confirm("Clear all data?")) { localStorage.removeItem(STORAGE_KEY); location.reload(); }});
         click('download-csv', downloadCSV);
-        click('download-xlsx', downloadXLSX); // Updated Handler
+        click('download-xlsx', downloadXLSX);
         click('open-file-btn', () => document.getElementById('file-input').click());
         document.getElementById('file-input').onchange = handleFile;
         document.getElementById('font-color-picker').oninput = e => apply('color', e.target.value);
