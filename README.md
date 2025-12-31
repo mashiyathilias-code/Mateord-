@@ -26,7 +26,7 @@ AuraWork bundles five core applications, each crafted to enhance a specific area
     *   Organize data with rows and columns. Features include CSV export and formula support.
 *   **AuraPad** 📝
     *   A distraction-free notepad with character counting and reliable auto-save functionality.
-*   **AuraCalc** ➕
+*   **AuraCalc** ➕ (Now cancelled)
     *   Perform quick calculations with a clean, history-tracking interface.
 *   **AuraDate** 📅
     *   Manage your schedule, add events, and track important dates visually.
