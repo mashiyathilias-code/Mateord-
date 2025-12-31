@@ -1,73 +1,137 @@
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AuraWork | Suite</title>
+    <title>AuraWork v2.0 | Suite</title>
 
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Reliable Google Fonts: Inter (UI) and standard Material Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     
     <!-- Favicon -->
     <link rel="icon" href="icon.png" type="image/png">
 
     <style>
-        /* 
-         * =============================================
-         *   Core Variables & Reset
+        /* * =============================================
+         * Variables & Theming
          * =============================================
          */
         :root {
-            --primary: #6200EA;
-            --primary-dark: #3700B3;
-            --secondary: #03DAC6;
-            --background: #F5F5F5;
-            --surface: #FFFFFF;
-            --text-primary: #000000;
-            --text-secondary: #757575;
-            --on-primary: #FFFFFF;
+            /* Light Mode Aura - Softer, more readable */
+            --bg-gradient: linear-gradient(-45deg, #a8c0ff, #3f2b96, #23a6d5, #23d5ab);
             
-            --shadow-1: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
-            --shadow-2: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
-            --shadow-3: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
-            --shadow-hover: 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22);
+            /* Glass Variables - Light */
+            --glass-bg: rgba(255, 255, 255, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.8);
+            --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+            --glass-blur: blur(16px);
+            
+            /* Text & Accents - Light */
+            --text-main: #111111;
+            --text-muted: #444444;
+            --accent: #4F46E5; /* Indigo */
+            --accent-hover: #4338ca;
+            --card-hover-bg: rgba(255, 255, 255, 0.85);
         }
 
+        [data-theme="dark"] {
+            /* Dark Mode Aura - Deep & Space-like */
+            --bg-gradient: linear-gradient(-45deg, #0f2027, #203a43, #2c5364, #1a1a2e);
+            
+            /* Glass Variables - Dark */
+            --glass-bg: rgba(20, 20, 35, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+            
+            /* Text & Accents - Dark */
+            --text-main: #ffffff;
+            --text-muted: #bbbbbb;
+            --accent: #818cf8;
+            --accent-hover: #6366f1;
+            --card-hover-bg: rgba(255, 255, 255, 0.1);
+        }
+
+        /* * =============================================
+         * Reset & Core
+         * =============================================
+         */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
         }
 
         body {
-            font-family: 'Roboto', sans-serif;
-            background: var(--background);
-            color: var(--text-primary);
+            /* Reliable Font Stack: Inter -> System Fonts -> Generic Sans */
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text-main);
             min-height: 100vh;
+            background: var(--bg-gradient);
+            background-size: 400% 400%;
+            animation: auraFlow 20s ease infinite;
             display: flex;
             flex-direction: column;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased; /* Crisp text on Mac */
+            -moz-osx-font-smoothing: grayscale;
         }
 
-        a {
-            text-decoration: none;
-            color: inherit;
+        @keyframes auraFlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
 
-        /* 
-         * =============================================
-         *   Navigation / Header
+        a { text-decoration: none; color: inherit; }
+        
+        /* Font Fix for Material Icons */
+        .material-icons {
+            font-family: 'Material Icons';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;  /* Preferred icon size */
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+            /* Support for all WebKit browsers. */
+            -webkit-font-smoothing: antialiased;
+            /* Support for Safari and Chrome. */
+            text-rendering: optimizeLegibility;
+            /* Support for Firefox. */
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Glass Mixin Class */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
+            border-radius: 16px;
+        }
+
+        /* * =============================================
+         * Navigation
          * =============================================
          */
         .navbar {
-            background: var(--surface);
+            margin: 20px;
             padding: 16px 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: var(--shadow-1);
             position: sticky;
-            top: 0;
+            top: 20px;
             z-index: 100;
         }
 
@@ -75,66 +139,111 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            color: var(--primary);
         }
 
         .brand h1 {
             font-size: 20px;
-            font-weight: 500;
-            letter-spacing: 0.5px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
         }
 
         .brand-icon {
             font-size: 28px;
-            color: var(--secondary);
+            color: var(--accent);
+        }
+
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 20px;
         }
 
         .clock-display {
-            font-family: 'Roboto Mono', monospace;
-            font-weight: 500;
-            color: var(--text-secondary);
+            font-family: 'Inter', sans-serif;
+            font-variant-numeric: tabular-nums; /* Monospace numbers */
             font-size: 14px;
+            font-weight: 500;
+            color: var(--text-main);
+            opacity: 0.8;
+            display: none; 
+        }
+        @media(min-width: 768px) { .clock-display { display: block; } }
+
+        .theme-toggle {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            border-radius: 50%;
+            transition: background 0.3s;
         }
 
-        /* 
-         * =============================================
-         *   Hero Section
+        .theme-toggle:hover {
+            background: rgba(125, 125, 125, 0.15);
+        }
+
+        /* * =============================================
+         * Hero Section
          * =============================================
          */
+        .hero-container {
+            padding: 0 20px;
+            margin-bottom: 40px;
+            display: flex;
+            justify-content: center;
+        }
+
         .hero {
-            background: var(--primary);
-            color: var(--on-primary);
+            max-width: 900px;
+            width: 100%;
             text-align: center;
-            padding: 80px 24px;
-            clip-path: polygon(0 0, 100% 0, 100% 85%, 0 100%);
-            margin-bottom: 24px;
+            padding: 60px 30px;
+            position: relative;
+            overflow: hidden;
         }
 
         .hero h2 {
             font-size: 48px;
-            font-weight: 300;
+            font-weight: 800;
             margin-bottom: 16px;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
         }
 
         .hero p {
             font-size: 18px;
-            opacity: 0.9;
-            max-width: 600px;
+            color: var(--text-muted);
+            max-width: 550px;
             margin: 0 auto;
             line-height: 1.6;
+            font-weight: 400;
         }
 
-        /* 
-         * =============================================
-         *   App Grid Layout
+        .version-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            background: var(--accent);
+            color: #fff;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        /* * =============================================
+         * App Grid Layout
          * =============================================
          */
         .container {
             max-width: 1200px;
-            margin: -60px auto 40px; /* Pull up into hero */
-            padding: 0 24px;
-            position: relative;
-            z-index: 10;
+            margin: 0 auto 40px;
+            padding: 0 20px;
+            flex-grow: 1;
         }
 
         .app-grid {
@@ -143,178 +252,191 @@
             gap: 24px;
         }
 
-        /* 
-         * =============================================
-         *   App Cards
+        /* * =============================================
+         * App Cards
          * =============================================
          */
         .app-card {
-            background: var(--surface);
-            border-radius: 8px;
-            padding: 32px 24px;
-            box-shadow: var(--shadow-2);
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            padding: 32px;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            text-align: center;
-            height: 100%;
-            border-top: 4px solid transparent;
+            align-items: flex-start;
+            text-align: left;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s;
+            position: relative;
+            overflow: hidden;
         }
 
         .app-card:hover {
-            transform: translateY(-8px);
-            box-shadow: var(--shadow-hover);
+            transform: translateY(-8px) scale(1.01);
+            background: var(--card-hover-bg);
+            border-color: var(--accent);
         }
 
-        /* Branding Colors for Hover borders */
-        .app-card.word:hover { border-color: #2196F3; }
-        .app-card.sheet:hover { border-color: #4CAF50; }
-        .app-card.note:hover { border-color: #FFC107; }
-        .app-card.calc:hover { border-color: #FF5722; }
-        .app-card.date:hover { border-color: #9C27B0; }
-        .app-card.chat:hover { border-color: #03DAC6; }
-
-        .app-icon {
-            background: var(--background);
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
+        .app-icon-wrapper {
+            background: rgba(255, 255, 255, 0.1);
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 24px;
-            transition: background 0.3s;
+            margin-bottom: 20px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
 
-        .app-icon .material-icons {
-            font-size: 40px;
-            color: var(--primary);
+        .app-icon-wrapper .material-icons {
+            font-size: 28px;
+            color: var(--text-main);
         }
 
-        .app-card:hover .app-icon {
-            background: rgba(98, 0, 234, 0.05);
-        }
+        /* Specific accents for icon colors */
+        .word .material-icons { color: #2563EB; }
+        .sheet .material-icons { color: #059669; }
+        .note .material-icons { color: #D97706; }
+        .calc .material-icons { color: #DC2626; }
+        .date .material-icons { color: #9333EA; }
+        .pos .material-icons { color: #0D9488; }
 
         .app-title {
-            font-size: 24px;
-            font-weight: 500;
-            margin-bottom: 8px;
-            color: var(--text-primary);
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            letter-spacing: -0.01em;
         }
 
         .app-desc {
-            font-size: 14px;
-            color: var(--text-secondary);
+            font-size: 15px;
+            color: var(--text-muted);
             margin-bottom: 24px;
-            flex-grow: 1; /* Pushes button to bottom */
-            line-height: 1.5;
+            flex-grow: 1;
+            line-height: 1.6;
         }
 
         .launch-btn {
-            background: var(--primary);
-            color: var(--on-primary);
-            padding: 10px 24px;
-            border-radius: 4px;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.75px;
-            transition: background 0.3s;
-            display: inline-flex;
+            width: 100%;
+            padding: 14px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            font-weight: 600;
+            text-align: center;
+            border: 1px solid var(--glass-border);
+            transition: all 0.2s;
+            display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: center;
+            gap: 10px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .launch-btn:hover {
-            background: var(--primary-dark);
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        
+        /* Ensure icons in button are vertically centered */
+        .launch-btn .material-icons {
+            font-size: 18px;
+            display: block;
         }
 
-        /* 
-         * =============================================
-         *   About Section
+        /* * =============================================
+         * About & Footer
          * =============================================
          */
         .about-section {
-            background: #FFFFFF;
-            padding: 60px 24px;
+            margin: 0 20px 24px;
             text-align: center;
-            border-top: 1px solid #E0E0E0;
-            margin-top: 24px;
         }
 
         .about-container {
-            max-width: 800px;
+            padding: 40px;
+            max-width: 900px;
             margin: 0 auto;
         }
 
         .about-section h2 {
-            font-weight: 300;
-            color: var(--primary);
-            margin-bottom: 16px;
-            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--text-main);
         }
 
         .about-section p {
-            color: var(--text-secondary);
+            color: var(--text-muted);
             line-height: 1.8;
-            font-size: 16px;
         }
 
-        /* 
-         * =============================================
-         *   Footer
-         * =============================================
-         */
+        .about-link {
+            color: var(--accent);
+            font-weight: 600;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+        
+        .about-link:hover {
+            border-bottom-color: var(--accent);
+        }
+
         footer {
-            margin-top: auto;
-            background: #263238; /* Dark footer */
-            color: #FFFFFF;
-            padding: 24px;
+            margin: 0 20px 24px;
+            padding: 20px;
             text-align: center;
+            color: var(--text-muted);
         }
 
         footer p {
-            font-size: 14px;
-            opacity: 0.7;
+            font-size: 13px;
         }
 
-        /* 
-         * =============================================
-         *   Responsive Adjustments
+        /* * =============================================
+         * Responsive
          * =============================================
          */
         @media (max-width: 600px) {
-            .hero {
-                clip-path: none;
-                padding: 40px 24px;
-                margin-bottom: 0;
+            .navbar, .hero-container, .container, .about-section, footer {
+                padding-left: 0;
+                padding-right: 0;
+                margin-left: 12px;
+                margin-right: 12px;
             }
-            .container {
-                margin: 24px auto;
-            }
-            .hero h2 {
-                font-size: 32px;
-            }
+            
+            .hero h2 { font-size: 32px; }
+            .hero { padding: 40px 20px; }
         }
     </style>
 </head>
 <body>
 
-    <!-- Top Navigation -->
-    <nav class="navbar">
+    <!-- Top Navigation Island -->
+    <nav class="navbar glass-panel">
         <div class="brand">
+            <!-- Fixed: Standard Material Icon -->
             <span class="material-icons brand-icon">layers</span>
             <h1>AuraWork</h1>
         </div>
-        <div class="clock-display" id="clock">
-            Loading...
+        
+        <div class="nav-controls">
+            <div class="clock-display" id="clock">...</div>
+            
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle Dark Mode">
+                <!-- Fixed: Standard Material Icon -->
+                <span class="material-icons" id="themeIcon">dark_mode</span>
+            </button>
         </div>
     </nav>
 
-    <!-- Hero Header -->
-    <header class="hero">
-        <h2>Your Complete Workspace</h2>
-        <p>A suite of private, lightweight, and powerful tools designed to boost your productivity with Material Design elegance.</p>
+    <!-- Hero Island -->
+    <header class="hero-container">
+        <div class="hero glass-panel">
+            <span class="version-badge">v2.0</span>
+            <h2>Your own workspace</h2>
+            <p>A suite of private, lightweight tools designed with frosted aesthetics and powerful functionality.</p>
+        </div>
     </header>
 
     <!-- App Grid -->
@@ -322,90 +444,103 @@
         <div class="app-grid">
             
             <!-- AuraWord -->
-            <div class="app-card word">
-                <div class="app-icon">
+            <div class="app-card glass-panel word">
+                <div class="app-icon-wrapper">
                     <span class="material-icons">description</span>
                 </div>
                 <h3 class="app-title">AuraWord</h3>
-                <p class="app-desc">A rich text document writer with formatting controls, printing capabilities, and local saving.</p>
+                <p class="app-desc">Rich text document writer with formatting controls, printing, and local saving.</p>
                 <a href="word.html" class="launch-btn">
-                    Launch <span class="material-icons" style="font-size: 16px;">arrow_forward</span>
+                    Open App <span class="material-icons">arrow_forward</span>
                 </a>
             </div>
 
             <!-- AuraSheet -->
-            <div class="app-card sheet">
-                <div class="app-icon">
+            <div class="app-card glass-panel sheet">
+                <div class="app-icon-wrapper">
                     <span class="material-icons">grid_on</span>
                 </div>
                 <h3 class="app-title">AuraSheet</h3>
                 <p class="app-desc">Organize data with rows and columns. Features CSV export and formula support.</p>
                 <a href="sheet.html" class="launch-btn">
-                    Launch <span class="material-icons" style="font-size: 16px;">arrow_forward</span>
+                    Open App <span class="material-icons">arrow_forward</span>
                 </a>
             </div>
 
-            <!-- MaterialPad -->
-            <div class="app-card note">
-                <div class="app-icon">
-                    <span class="material-icons">note</span>
+            <!-- AuraPad -->
+            <div class="app-card glass-panel note">
+                <div class="app-icon-wrapper">
+                    <span class="material-icons">edit_note</span>
                 </div>
                 <h3 class="app-title">AuraPad</h3>
                 <p class="app-desc">A distraction-free notepad with character counting and auto-save functionality.</p>
                 <a href="pad.html" class="launch-btn">
-                    Launch <span class="material-icons" style="font-size: 16px;">arrow_forward</span>
+                    Open App <span class="material-icons">arrow_forward</span>
                 </a>
             </div>
 
             <!-- AuraCalc -->
-            <div class="app-card calc">
-                <div class="app-icon">
+            <div class="app-card glass-panel calc">
+                <div class="app-icon-wrapper">
                     <span class="material-icons">calculate</span>
                 </div>
                 <h3 class="app-title">AuraCalc</h3>
                 <p class="app-desc">Perform quick calculations with a clean, history-tracking interface.</p>
                 <a href="calc.html" class="launch-btn">
-                    Launch <span class="material-icons" style="font-size: 16px;">arrow_forward</span>
+                    Open App <span class="material-icons">arrow_forward</span>
                 </a>
             </div>
 
             <!-- AuraDate -->
-            <div class="app-card date">
-                <div class="app-icon">
+            <div class="app-card glass-panel date">
+                <div class="app-icon-wrapper">
                     <span class="material-icons">calendar_month</span>
                 </div>
                 <h3 class="app-title">AuraDate</h3>
                 <p class="app-desc">Manage your schedule, add events, and track important dates visually.</p>
                 <a href="date.html" class="launch-btn">
-                    Launch <span class="material-icons" style="font-size: 16px;">arrow_forward</span>
+                    Open App <span class="material-icons">arrow_forward</span>
                 </a>
             </div>
+
+            <!-- Ironclad POS -->
+            <div class="app-card glass-panel pos">
+                <div class="app-icon-wrapper">
+                    <span class="material-icons">point_of_sale</span>
+                </div>
+                <h3 class="app-title">Ironclad POS</h3>
+                <p class="app-desc">Professional point-of-sale terminal with encrypted inventory and local processing.</p>
+                <a href="posindex.html" class="launch-btn">
+                    Open App <span class="material-icons">arrow_forward</span>
+                </a>
+            </div>
+
         </div>
     </main>
 
-    <!-- About Section -->
+    <!-- About Section Island -->
     <section class="about-section">
-        <div class="about-container">
-            <h2>About</h2>
+        <div class="about-container glass-panel">
+            <h2>About AuraWork</h2>
             <p>
-    Hi, I'm Mashiyath Ilias. I made this app. What do you think? I've open sourced it on github at https://github.com/mashiyathilias-code/Mateord- . I highly encourage you to fork it :)
+               Hi, I'm Mashiyath Ilias. This suite is open sourced on <a href="https://github.com/mashiyathilias-code/Mateord-" class="about-link" target="_blank">GitHub</a>. 
+               Built for performance and privacy.
             </p>
         </div>
     </section>
 
-    <!-- Footer -->
-    <footer>
-        <p>&copy; 2025 AuraWork Suite. All rights reserved.</p>
-        <p style="margin-top: 8px; font-size: 12px; color: #B0BEC5;">Privacy focused. No data leaves your device (except AuraChat).</p>
+    <!-- Footer Island -->
+    <footer class="glass-panel">
+        <p>&copy; 2025 AuraWork Suite. v2.0 Glass Edition.</p>
     </footer>
 
-    <!-- Simple Clock Script -->
+    <!-- Scripts -->
     <script>
+        // Clock Logic
         function updateClock() {
             const now = new Date();
             const options = { 
                 weekday: 'short', 
-                year: 'numeric', 
                 month: 'short', 
                 day: 'numeric', 
                 hour: '2-digit', 
@@ -415,7 +550,29 @@
         }
         setInterval(updateClock, 1000);
         updateClock();
+
+        // Theme Toggle Logic
+        const toggleBtn = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+        const htmlElement = document.documentElement;
+
+        // Check LocalStorage
+        const savedTheme = localStorage.getItem('auraTheme') || 'light';
+        htmlElement.setAttribute('data-theme', savedTheme);
+        updateIcon(savedTheme);
+
+        toggleBtn.addEventListener('click', () => {
+            const currentTheme = htmlElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            
+            htmlElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('auraTheme', newTheme);
+            updateIcon(newTheme);
+        });
+
+        function updateIcon(theme) {
+            themeIcon.textContent = theme === 'light' ? 'dark_mode' : 'light_mode';
+        }
     </script>
 </body>
 </html>
-
