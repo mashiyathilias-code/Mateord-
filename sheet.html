@@ -103,6 +103,11 @@
             100% { transform: translate(20px, 40px) scale(1.1); }
         }
 
+        /* Performance: Pause animation when tab is not visible */
+        body.animations-paused .blob {
+            animation-play-state: paused;
+        }
+
         /* --- GLASS MIXIN CLASSES --- */
         .glass-panel {
             background: var(--glass-surface);
@@ -1091,5 +1096,6 @@
         document.getElementById('bg-color-picker').oninput = e => apply('backgroundColor', e.target.value);
     });
 </script>
+<script src="shared/performance.js"></script>
 </body>
 </html>

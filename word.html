@@ -66,6 +66,11 @@
         100% { background-position: 0% 50%; }
     }
 
+    /* Performance: Pause animation when tab is not visible */
+    body.animations-paused {
+        animation-play-state: paused;
+    }
+
     /* --- 2. LAYOUT ENGINE (The Fix) --- */
     * { box-sizing: border-box; }
 
@@ -1050,6 +1055,7 @@ function generateODT() {
         if(isDirty) saveContentToDB(); 
     };
 </script>
+<script src="shared/performance.js"></script>
     
 </body>
 </html>

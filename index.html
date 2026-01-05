@@ -87,6 +87,11 @@
             100% { background-position: 0% 50%; }
         }
 
+        /* Performance: Pause animation when tab is not visible */
+        body.animations-paused {
+            animation-play-state: paused;
+        }
+
         a { text-decoration: none; color: inherit; }
         
         /* Font Fix for Material Icons */
@@ -574,5 +579,6 @@
             themeIcon.textContent = theme === 'light' ? 'dark_mode' : 'light_mode';
         }
     </script>
+    <script src="shared/performance.js"></script>
 </body>
 </html>
